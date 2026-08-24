@@ -1,4 +1,4 @@
-import '../../../services/api_service.dart';
+﻿import '../../../services/api_service.dart';
 import '../data/category_mock_data.dart';
 import '../models/category_models.dart';
 
@@ -112,16 +112,258 @@ class CategoryRepository {
     return '';
   }
 
+  /// Explicit product-name keyword overrides, keyed by subcategory id.
+  /// Subcategory *titles* (e.g. "Fresh Fruits", "Bhujia & Sev", "Cream
+  /// Biscuits") almost never appear literally inside real backend
+  /// product names ("Apple", "Aashirvaad Atta", "KitKat"...), so the
+  /// generic title-word match further below misses for most real
+  /// products and silently falls back to round-robin bucketing -
+  /// scattering real products across every subcategory tab regardless
+  /// of what they actually are. These lists are checked first, across
+  /// every mock category with a real backend mapping, so real products
+  /// land on the subcategory a person would actually expect.
+  static const Map<String, List<String>> _subCategoryKeywordOverrides = {
+    // Vegetables & Fruits
+    'cat_veg_fruits_sub0': [ // Fresh Vegetables
+      'tomato', 'onion', 'potato', 'capsicum', 'cabbage', 'cauliflower',
+      'brinjal', 'okra', 'bhindi', 'spinach', 'palak', 'carrot',
+      'cucumber', 'peas', 'corn', 'mushroom', 'garlic', 'ginger',
+      'chilli', 'chili', 'beans', 'beetroot', 'pumpkin', 'radish',
+      'gourd', 'coriander', 'methi', 'drumstick', 'lauki',
+    ],
+    'cat_veg_fruits_sub1': [ // Fresh Fruits
+      'apple', 'banana', 'mango', 'orange', 'papaya', 'watermelon',
+      'pear', 'guava', 'chiku', 'sapota', 'plum', 'litchi', 'grape',
+      'jackfruit', 'custard apple', 'sitaphal', 'muskmelon',
+    ],
+    'cat_veg_fruits_sub2': ['organic'], // Organic Produce
+    'cat_veg_fruits_sub3': [ // Exotic Fruits
+      'dragon fruit', 'kiwi', 'pineapple', 'pomegranate', 'avocado',
+      'blueberr', 'strawberr', 'passion fruit', 'persimmon', 'fig',
+    ],
+
+    // Atta, Rice & Dal
+    'cat_atta_rice_dal_sub0': ['atta', 'flour', 'maida', 'besan', 'sooji', 'rava'],
+    'cat_atta_rice_dal_sub1': ['rice', 'basmati', 'poha', 'idli rice'],
+    'cat_atta_rice_dal_sub2': [
+      'dal', 'chana', 'moong', 'toor', 'urad', 'rajma', 'lentil', 'masoor', 'pulses',
+    ],
+    'cat_atta_rice_dal_sub3': ['sugar', 'jaggery', 'gur'],
+
+    // Oil, Ghee & Masala
+    'cat_oil_ghee_masala_sub0': [
+      'sunflower oil', 'mustard oil', 'groundnut oil', 'coconut oil',
+      'olive oil', 'refined oil', 'cooking oil', 'edible oil',
+    ],
+    'cat_oil_ghee_masala_sub1': ['ghee', 'vanaspati', 'dalda'],
+    'cat_oil_ghee_masala_sub2': [
+      'jeera', 'cumin', 'mustard seed', 'cardamom', 'clove', 'cinnamon',
+      'pepper', 'bay leaf', 'star anise', 'fennel', 'saunf',
+    ],
+    'cat_oil_ghee_masala_sub3': [
+      'masala', 'garam masala', 'chilli powder', 'turmeric', 'haldi',
+      'coriander powder', 'dhania powder',
+    ],
+
+    // Dairy, Bread & Eggs
+    'cat_dairy_bread_eggs_sub0': ['milk'],
+    'cat_dairy_bread_eggs_sub1': ['bread', 'pav', 'bun'],
+    'cat_dairy_bread_eggs_sub2': ['egg'],
+    'cat_dairy_bread_eggs_sub3': ['butter', 'cheese', 'paneer', 'curd', 'yogurt', 'cream'],
+
+    // Bakery
+    'cat_bakery_biscuits_sub0': ['cake', 'swiss roll', 'roll'],
+    'cat_bakery_biscuits_sub1': ['pastry', 'pastries', 'cupcake'],
+    'cat_bakery_biscuits_sub2': ['bread', 'bun', 'pav'],
+    'cat_bakery_biscuits_sub3': ['rusk', 'toast'],
+
+    // Biscuits
+    'cat_biscuits_sub0': ['cookie', 'chocochip', 'choco chip'],
+    'cat_biscuits_sub1': ['cream biscuit', 'oreo', 'bourbon', 'treat', 'good day'],
+    'cat_biscuits_sub2': ['glucose', 'parle-g', 'parle g', 'tiger'],
+    'cat_biscuits_sub3': ['marie', 'digestive', 'monaco', 'krackjack', 'thin arrowroot'],
+
+    // Dry Fruits & Cereals
+    'cat_dryfruits_cereals_sub0': ['almond', 'cashew', 'walnut', 'pista', 'pistachio', 'nuts'],
+    'cat_dryfruits_cereals_sub1': ['raisin', 'dates', 'kishmish', 'anjeer', 'fig'],
+    'cat_dryfruits_cereals_sub2': ['cereal', 'cornflakes', 'corn flakes'],
+    'cat_dryfruits_cereals_sub3': ['muesli', 'oats', 'oatmeal', 'granola'],
+
+    // Kitchenware & Appliances
+    'cat_kitchenware_sub0': [
+      'tawa', 'pan', 'kadhai', 'cookware', 'chopping board', 'kitchen scissors', 'knife',
+    ],
+    'cat_kitchenware_sub1': ['container', 'storage', 'box', 'jar'],
+    'cat_kitchenware_sub2': ['mixer', 'grinder', 'toaster', 'blender', 'appliance', 'iron'],
+    'cat_kitchenware_sub3': ['bottle', 'flask', 'water bottle'],
+
+    // Chicken & Meat
+    'cat_chicken_meat_fish_sub0': ['chicken'],
+    'cat_chicken_meat_fish_sub1': ['mutton', 'lamb', 'goat'],
+    'cat_chicken_meat_fish_sub2': ['fish', 'rohu', 'prawn', 'shrimp', 'seafood', 'pomfret'],
+    'cat_chicken_meat_fish_sub3': ['egg'],
+
+    // Namkeen
+    'cat_chips_namkeen_sub0': ['namkeen', 'chivda'],
+    'cat_chips_namkeen_sub1': ['bhujia', 'sev'],
+    'cat_chips_namkeen_sub2': ['popcorn'],
+    'cat_chips_namkeen_sub3': ['mixture', 'mix namkeen'],
+
+    // Chips
+    'cat_chips_sub0': ['potato chip', 'lays', 'chips'],
+    'cat_chips_sub1': ['corn chip', 'nachos', 'doritos'],
+    'cat_chips_sub2': ['kurkure', 'cheetos', 'extruded'],
+    'cat_chips_sub3': ['multigrain'],
+
+    // Sweets & Chocolates
+    'cat_sweets_choco_sub0': ['sweet', 'mithai', 'ladoo', 'barfi', 'rasgulla', 'gulab jamun'],
+    'cat_sweets_choco_sub1': [
+      'kitkat', 'hersheys', 'snickers', 'dairy milk', 'mars', 'five star',
+      'munch', 'perk', 'bournville', 'dark chocolate', 'fantasy', 'chocolate bar',
+    ],
+    'cat_sweets_choco_sub2': ['gift pack', 'celebration', 'assorted box'],
+    'cat_sweets_choco_sub3': ['candy', 'lollipop', 'eclairs', 'toffee', 'alpenliebe'],
+
+    // Drinks & Juices
+    'cat_drinks_juices_sub0': [
+      'sprite', 'thums up', 'coca-cola', 'coke', 'pepsi', 'fanta', 'soft drink', 'soda',
+    ],
+    'cat_drinks_juices_sub1': ['juice', 'real ', 'tropicana', 'mango juice'],
+    'cat_drinks_juices_sub2': ['red bull', 'energy drink', 'monster', 'gatorade'],
+    'cat_drinks_juices_sub3': ['horlicks', 'health drink', 'protein shake'],
+
+    // Tea, Coffee & Milk Drinks
+    'cat_tea_coffee_sub0': ['tea', 'chai', 'tetley', 'red label', 'taj mahal'],
+    'cat_tea_coffee_sub1': ['coffee', 'nescafe', 'bru'],
+    'cat_tea_coffee_sub2': ['green tea', 'lipton green'],
+    'cat_tea_coffee_sub3': ['bournvita', 'horlicks', 'boost', 'complan', 'malt'],
+
+    // Instant Food
+    'cat_instant_food_sub0': ['noodle', 'maggi', 'pasta'],
+    'cat_instant_food_sub1': ['ready to eat', 'pulao', 'biryani'],
+    'cat_instant_food_sub2': ['frozen', 'nugget', 'samosa', 'spring roll'],
+    'cat_instant_food_sub3': ['soup'],
+
+    // Sauces & Spreads
+    'cat_sauces_spreads_sub0': ['ketchup', 'sauce', 'mayonnaise'],
+    'cat_sauces_spreads_sub1': ['jam', 'spread', 'nutella'],
+    'cat_sauces_spreads_sub2': ['honey'],
+    'cat_sauces_spreads_sub3': ['peanut butter'],
+
+    // Paan Corner
+    'cat_paan_corner_sub0': ['mouth freshener'],
+    'cat_paan_corner_sub1': ['supari'],
+    'cat_paan_corner_sub2': ['digestive', 'hajmola', 'churan'],
+    'cat_paan_corner_sub3': ['mint', 'mentos', 'polo'],
+
+    // Ice Creams & More
+    'cat_ice_creams_sub0': ['tub', 'family pack', 'litre'],
+    'cat_ice_creams_sub1': ['cup', 'stick', 'cone', 'magnum', 'cornetto'],
+    'cat_ice_creams_sub2': ['kulfi'],
+    'cat_ice_creams_sub3': ['frozen dessert', 'sundae'],
+
+    // Bath & Body
+    'cat_bath_body_sub0': ['soap', 'body wash', 'shower gel'],
+    'cat_bath_body_sub1': ['lotion', 'moisturi'],
+    'cat_bath_body_sub2': ['talcum', 'talc', 'powder'],
+    'cat_bath_body_sub3': ['deodorant', 'deo', 'perfume', 'body spray'],
+
+    // Hair
+    'cat_hair_sub0': ['shampoo'],
+    'cat_hair_sub1': ['conditioner'],
+    'cat_hair_sub2': ['hair oil'],
+    'cat_hair_sub3': ['hair color', 'hair dye', 'mehendi'],
+
+    // Skin & Face
+    'cat_skin_face_sub0': ['face wash', 'facewash', 'cleanser'],
+    'cat_skin_face_sub1': ['moisturizer', 'moisturiser'],
+    'cat_skin_face_sub2': ['sunscreen', 'sunblock', 'spf'],
+    'cat_skin_face_sub3': ['face mask', 'facemask', 'sheet mask'],
+
+    // Feminine Hygiene
+    'cat_feminine_hygiene_sub0': ['sanitary pad', 'pad'],
+    'cat_feminine_hygiene_sub1': ['tampon'],
+    'cat_feminine_hygiene_sub2': ['intimate wash'],
+    'cat_feminine_hygiene_sub3': ['menstrual cup'],
+
+    // Baby Care
+    'cat_baby_care_sub0': ['diaper'],
+    'cat_baby_care_sub1': ['baby food', 'cerelac', 'formula'],
+    'cat_baby_care_sub2': ['baby lotion', 'baby oil', 'baby powder', 'baby cream'],
+    'cat_baby_care_sub3': ['wipes', 'baby wipe'],
+
+    // Health & Pharma
+    'cat_health_pharma_sub0': ['paracetamol', 'medicine', 'tablet', 'syrup'],
+    'cat_health_pharma_sub1': ['supplement', 'multivitamin', 'vitamin'],
+    'cat_health_pharma_sub2': ['first aid', 'sanitizer', 'bandage', 'antiseptic'],
+    'cat_health_pharma_sub3': ['protein powder', 'protein', 'whey', 'nutrition'],
+
+    // Home & Lifestyle
+    'cat_home_lifestyle_sub0': ['bedsheet', 'bed linen', 'pillow cover', 'blanket'],
+    'cat_home_lifestyle_sub1': [
+      'decor', 'showpiece', 'candle', 'puja', 'agarbatti', 'camphor',
+      'pooja thali', 'bell', 'ghanti',
+    ],
+    'cat_home_lifestyle_sub2': ['storage', 'organizer'],
+    'cat_home_lifestyle_sub3': ['plant', 'pot', 'planter'],
+
+    // Clothes
+    'cat_clothes_sub0': ['tshirt', 't-shirt', 'full sleeve', 'sando', 'vest', 'tank top', 'sleeveless'],
+    'cat_clothes_sub1': ['jean', 'trouser'],
+    'cat_clothes_sub2': ['dress', 'floral dress', 'gown', 'skirt', 'denim dress'],
+    'cat_clothes_sub3': ['jacket', 'hoodie', 'sweater', 'sweatshirt'],
+
+    // Cleaners & Repellents
+    'cat_cleaners_repellents_sub0': ['floor cleaner', 'toilet cleaner', 'phenyl', 'harpic'],
+    'cat_cleaners_repellents_sub1': [
+      'detergent', 'surf excel', 'washing powder', 'tide', 'ariel',
+    ],
+    'cat_cleaners_repellents_sub2': ['dishwash', 'vim', 'dish soap'],
+    'cat_cleaners_repellents_sub3': [
+      'mosquito', 'repellent', 'odomos', 'coil', 'good knight', 'all out',
+    ],
+
+    // Electronics
+    'cat_electronics_sub0': ['earphone', 'headphone', 'speaker'],
+    'cat_electronics_sub1': ['charger', 'cable'],
+    'cat_electronics_sub2': ['battery', 'batteries'],
+    'cat_electronics_sub3': ['bulb', 'led', 'tubelight'],
+
+    // Stationery & Games
+    'cat_stationery_games_sub0': ['notebook', 'pen', 'pencil', 'eraser'],
+    'cat_stationery_games_sub1': ['board game', 'playing cards', 'ludo', 'carrom'],
+    'cat_stationery_games_sub2': ['crayon', 'sketch pen', 'paint'],
+    'cat_stationery_games_sub3': ['toy', 'doll', 'puzzle', 'hot wheels', 'car', 'rc ', 'remote control', 'action figure'],
+  };
+
   /// Finds which subcategory (by position, 0-based) a backend product
-  /// belongs to, by checking if any word from a subcategory's title
-  /// appears in the product name (e.g. "Farm Eggs (6 pcs)" -> the
-  /// "Eggs" subcategory). Falls back to spreading products evenly by
-  /// [index] so every tab has something to show even without a match.
+  /// belongs to. Checks explicit keyword overrides first (for cases
+  /// where the subcategory title's own words never appear in real
+  /// product names), then falls back to matching any word from the
+  /// subcategory's title against the product name (e.g. "Farm Eggs
+  /// (6 pcs)" -> the "Eggs" subcategory). Only spreads products evenly
+  /// by [index] as a last resort, so every tab has something to show
+  /// even without a real match.
   int _guessSubCategoryIndex(String productName, CategoryModel category, int index) {
     final subs = category.subCategories;
     if (subs.isEmpty) return 0;
     final nameLower = productName.toLowerCase();
+
     for (var s = 0; s < subs.length; s++) {
+      final overrides = _subCategoryKeywordOverrides[subs[s].id];
+      if (overrides != null) {
+        for (final keyword in overrides) {
+          if (nameLower.contains(keyword)) return s;
+        }
+      }
+    }
+
+    for (var s = 0; s < subs.length; s++) {
+      // Skip subcategories that have explicit overrides above - if none
+      // of their keywords matched, the generic title-word fallback below
+      // would just misfire on unrelated words (e.g. "Fruits" from
+      // "Exotic Fruits" matching every fruit, undoing the overrides).
+      if (_subCategoryKeywordOverrides.containsKey(subs[s].id)) continue;
       final words = subs[s]
           .title
           .toLowerCase()
@@ -266,3 +508,5 @@ class CategoryRepository {
         .toList();
   }
 }
+
+
