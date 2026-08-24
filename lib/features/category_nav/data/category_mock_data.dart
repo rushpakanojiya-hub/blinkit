@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../../constants/asset_constants.dart';
 import '../models/category_models.dart';
 
@@ -211,6 +211,24 @@ class CategoryMockData {
   static const String _p = 'assets/images/products';
 
   static const Map<String, List<String>> _categoryImagePool = {
+    'cat_clothes': [
+      'assets/categories/clothes.png',
+      'assets/categories/clothes.png',
+      'assets/categories/clothes.png',
+    ],
+    'cat_biscuits': [
+      '$_p/biscuit1.png',
+      '$_p/biscuit2.png',
+      '$_p/biscuit3.png',
+      '$_p/cookie1.png',
+      '$_p/cookie2.png',
+      '$_p/cookie3.png',
+    ],
+    'cat_chips': [
+      '$_p/chips1.png',
+      '$_p/chips2.png',
+      '$_p/chips3.png',
+    ],
     'cat_oil_ghee_masala': [
       '$_p/oil.png',
       '$_p/saffola.png',
@@ -281,6 +299,9 @@ class CategoryMockData {
       '$_p/mutton3.png',
       '$_p/fish1.png',
       '$_p/seafood1.png',
+      '$_p/egg1.png',
+      '$_p/egg2.png',
+      '$_p/egg3.png',
     ],
     'cat_chips_namkeen': [
       '$_p/chips1.png',
@@ -320,6 +341,9 @@ class CategoryMockData {
       '$_p/honey1.png',
       '$_p/honey2.png',
       '$_p/honey3.png',
+      '$_p/butter1.png',
+      '$_p/butter2.png',
+      '$_p/butter3.png',
     ],
     'cat_drinks_juices': [
       '$_p/softdrink1.png',
@@ -591,6 +615,7 @@ class CategoryMockData {
       'Chicken Curry Cut', 'Chicken Breast', 'Chicken Drumsticks',
       'Mutton Curry Cut', 'Mutton Boneless', 'Mutton Chops',
       'Fish Fillet', 'Prawns',
+      'Farm Eggs', 'Brown Eggs', 'Boiled Eggs',
     ],
     'cat_chips_namkeen': [
       'Lays Chips', 'Bingo Chips', 'Kurkure',
@@ -608,6 +633,7 @@ class CategoryMockData {
       'Mango Pickle', 'Tomato Ketchup', 'Chilli Sauce',
       'Mixed Fruit Jam', 'Strawberry Jam', 'Orange Marmalade',
       'Pure Honey', 'Dabur Honey', 'Organic Honey',
+      'Crunchy Peanut Butter', 'Creamy Peanut Butter', 'Sundrop Peanut Butter',
     ],
     'cat_drinks_juices': [
       'Coca-Cola', 'Pepsi', 'Sprite',
