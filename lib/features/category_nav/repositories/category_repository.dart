@@ -1,4 +1,4 @@
-﻿import '../../../services/api_service.dart';
+import '../../../services/api_service.dart';
 import '../data/category_mock_data.dart';
 import '../models/category_models.dart';
 
