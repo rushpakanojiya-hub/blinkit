@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:media_store_plus/media_store_plus.dart';
 import 'package:provider/provider.dart';
 import 'services/api_service.dart';
@@ -35,8 +36,13 @@ import 'features/gift_cards/presentation/providers/gift_card_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MediaStore.ensureInitialized();
-  MediaStore.appFolder = "GoFresh";
+  // MediaStore (Android scoped-storage API) has no web implementation.
+  // Calling it unconditionally crashes the web build on startup with
+  // MissingPluginException before a single widget can render.
+  if (!kIsWeb) {
+    await MediaStore.ensureInitialized();
+    MediaStore.appFolder = "GoFresh";
+  }
   runApp(const MyApp());
 }
 
@@ -86,6 +92,28 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
         ),
         home: const SplashScreen(),
+        builder: (context, child) {
+          final width = MediaQuery.of(context).size.width;
+          // Only constrain to a phone-like column on truly narrow
+          // desktop windows. Screens >= 900px (our web breakpoint)
+          // get full width so screen-specific web layouts can lay
+          // themselves out (e.g. split-screen login).
+          if (width < 900) {
+            return Container(
+              color: const Color(0xFFF0F0F0),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Container(
+                    color: Colors.white,
+                    child: child,
+                  ),
+                ),
+              ),
+            );
+          }
+          return child ?? const SizedBox.shrink();
+        },
       ),
     );
   }

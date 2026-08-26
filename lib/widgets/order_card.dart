@@ -46,7 +46,7 @@ class OrderCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _statusColor().withOpacity(0.12),
+                    color: _statusColor().withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(order.statusLabel,
@@ -57,13 +57,13 @@ class OrderCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(DateFormat('d MMM yyyy, hh:mm a').format(order.date),
-                style: GoogleFonts.poppins(fontSize: 12, color: scheme.onSurface.withOpacity(0.6))),
+                style: GoogleFonts.poppins(fontSize: 12, color: scheme.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('${order.itemCount} item${order.itemCount > 1 ? 's' : ''}',
-                    style: GoogleFonts.poppins(fontSize: 13, color: scheme.onSurface.withOpacity(0.7))),
+                    style: GoogleFonts.poppins(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.7))),
                 Text('${order.grandTotal}',
                     style: GoogleFonts.poppins(
                         fontSize: 14, fontWeight: FontWeight.bold, color: scheme.onSurface)),

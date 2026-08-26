@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -117,7 +117,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: scheme.onSurface)),
                   const SizedBox(height: 4),
                   Text(DateFormat('d MMM yyyy, hh:mm a').format(order.date),
-                      style: GoogleFonts.poppins(fontSize: 12, color: scheme.onSurface.withOpacity(0.6))),
+                      style: GoogleFonts.poppins(fontSize: 12, color: scheme.onSurface.withValues(alpha: 0.6))),
                 ],
               ),
               Text(order.statusLabel, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: kGreen)),
@@ -155,8 +155,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       children: [
                         Text(item.name,
                             style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-                        Text('${item.unit} Ã— ${item.quantity}',
-                            style: GoogleFonts.poppins(fontSize: 11, color: scheme.onSurface.withOpacity(0.6))),
+                        Text('${item.unit} Ãƒâ€” ${item.quantity}',
+                            style: GoogleFonts.poppins(fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.6))),
                       ],
                     ),
                   ),
@@ -169,12 +169,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         Text('Delivery Address',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: scheme.onSurface)),
         const SizedBox(height: 6),
-        Text(order.address, style: GoogleFonts.poppins(fontSize: 13, color: scheme.onSurface.withOpacity(0.7))),
+        Text(order.address, style: GoogleFonts.poppins(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.7))),
         const Divider(height: 28),
         Text('Payment Method',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: scheme.onSurface)),
         const SizedBox(height: 6),
-        Text(order.paymentMethod, style: GoogleFonts.poppins(fontSize: 13, color: scheme.onSurface.withOpacity(0.7))),
+        Text(order.paymentMethod, style: GoogleFonts.poppins(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.7))),
         const Divider(height: 28),
         Text('Order Timeline',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: scheme.onSurface)),
@@ -192,12 +192,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
-                          shape: BoxShape.circle, color: step.completed ? kGreen : scheme.onSurface.withOpacity(0.2)),
+                          shape: BoxShape.circle, color: step.completed ? kGreen : scheme.onSurface.withValues(alpha: 0.2)),
                     ),
                     if (!isLast)
                       Expanded(
                           child: Container(
-                              width: 2, color: step.completed ? kGreen : scheme.onSurface.withOpacity(0.15))),
+                              width: 2, color: step.completed ? kGreen : scheme.onSurface.withValues(alpha: 0.15))),
                   ],
                 ),
                 const SizedBox(width: 12),
@@ -212,7 +212,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                 GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
                         if (step.time != null)
                           Text(step.time!,
-                              style: GoogleFonts.poppins(fontSize: 11, color: scheme.onSurface.withOpacity(0.5))),
+                              style: GoogleFonts.poppins(fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.5))),
                       ],
                     ),
                   ),

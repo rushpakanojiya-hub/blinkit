@@ -99,7 +99,7 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                                           fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
                                 ),
                                 Icon(isOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                                    color: scheme.onSurface.withOpacity(0.6)),
+                                    color: scheme.onSurface.withValues(alpha: 0.6)),
                               ],
                             ),
                           ),
@@ -111,7 +111,7 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                               alignment: Alignment.centerLeft,
                               child: Text(faq.answer,
                                   style:
-                                      GoogleFonts.poppins(fontSize: 12, color: scheme.onSurface.withOpacity(0.7))),
+                                      GoogleFonts.poppins(fontSize: 12, color: scheme.onSurface.withValues(alpha: 0.7))),
                             ),
                           ),
                       ],
@@ -133,7 +133,7 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
       child: ListTile(
         leading: Icon(icon, color: kGreen),
         title: Text(title, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-        trailing: Icon(Icons.chevron_right, color: scheme.onSurface.withOpacity(0.4)),
+        trailing: Icon(Icons.chevron_right, color: scheme.onSurface.withValues(alpha: 0.4)),
         onTap: onTap,
       ),
     );

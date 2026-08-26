@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -219,7 +219,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8),
                         ],
                       ),
                       constraints: const BoxConstraints(maxHeight: 240),

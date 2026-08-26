@@ -1,4 +1,4 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+﻿import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:share_plus/share_plus.dart';
 
 /// Shows a native "Download complete" style notification after a file has
@@ -23,7 +23,7 @@ class DownloadNotificationService {
       onDidReceiveNotificationResponse: (response) async {
         final path = response.payload;
         if (path != null && path.isNotEmpty) {
-          await Share.shareXFiles([XFile(path)], text: 'Invoice');
+          await SharePlus.instance.share(ShareParams(files: [XFile(path)], text: 'Invoice'));
         }
       },
     );
@@ -71,3 +71,4 @@ class DownloadNotificationService {
     );
   }
 }
+

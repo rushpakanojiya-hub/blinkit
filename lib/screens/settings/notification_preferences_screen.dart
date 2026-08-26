@@ -15,7 +15,7 @@ class NotificationPreferencesScreen extends StatelessWidget {
     Widget row(String label, String key, bool value) {
       return SwitchListTile(
         value: value,
-        activeColor: kGreen,
+        activeThumbColor: kGreen,
         title: Text(label),
         onChanged: (v) => context.read<SettingsProvider>()
             .updateNotificationPref(key, v),

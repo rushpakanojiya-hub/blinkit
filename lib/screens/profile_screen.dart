@@ -210,7 +210,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 4),
             Text('+91 $phone',
                 style: GoogleFonts.poppins(
-                    fontSize: 13, color: scheme.onSurface.withOpacity(0.6))),
+                    fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.6))),
           ],
         ],
       ),
@@ -260,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
           ],
         ),
         child: Column(
@@ -291,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             SwitchListTile(
               value: settings.hideSensitive,
-              activeColor: kGreen,
+              activeThumbColor: kGreen,
               onChanged: (val) {
                 context.read<SettingsProvider>().setHideSensitive(val);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -310,7 +310,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontSize: 14, fontWeight: FontWeight.w600, color: scheme.onSurface)),
               subtitle: Text('Hide sensitive products from recommendations and search',
                   style: GoogleFonts.poppins(
-                      fontSize: 11, color: scheme.onSurface.withOpacity(0.6))),
+                      fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.6))),
             ),
           ],
         ),
@@ -354,7 +354,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: Text(title,
               style: GoogleFonts.poppins(
                   fontSize: 14, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-          trailing: Icon(Icons.chevron_right, color: scheme.onSurface.withOpacity(0.5)),
+          trailing: Icon(Icons.chevron_right, color: scheme.onSurface.withValues(alpha: 0.5)),
           onTap: onTap,
         ),
         if (!isLast)

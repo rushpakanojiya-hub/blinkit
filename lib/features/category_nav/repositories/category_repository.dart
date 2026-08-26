@@ -8,6 +8,7 @@ import '../models/category_models.dart';
 /// to a mock category by name, so cart/checkout works end-to-end.
 class CategoryRepository {
   static List<Map<String, dynamic>>? _cachedProducts;
+  static DateTime? _cachedAt;
 
   // Backend category names (from the real DB, e.g. "Fruits", "Shampoo")
   // don't line up 1:1 with the mock taxonomy's category titles (e.g.
@@ -18,6 +19,7 @@ class CategoryRepository {
   // so real products route into a real tab and stay purchasable.
   static const Map<String, String> _backendToMockCategoryId = {
     'fruits': 'cat_veg_fruits',
+'vegetables': 'cat_veg_fruits',
     'chocolate': 'cat_sweets_choco',
     'beverages': 'cat_drinks_juices',
     'ice creams': 'cat_ice_creams',
@@ -63,10 +65,12 @@ class CategoryRepository {
   }
 
   Future<List<Map<String, dynamic>>> _allBackendProducts() async {
-    if (_cachedProducts != null) return _cachedProducts!;
+    final isCacheValid = _cachedProducts != null && _cachedAt != null && DateTime.now().difference(_cachedAt!).inSeconds < 30;
+    if (isCacheValid) return _cachedProducts!;
     try {
       final raw = await ApiService.getProducts();
       _cachedProducts = raw.cast<Map<String, dynamic>>();
+      _cachedAt = DateTime.now();
     } catch (_) {
       _cachedProducts = [];
     }
@@ -381,7 +385,7 @@ class CategoryRepository {
   // starts with "http", so without this prefix it was treated as a bundled
   // asset (and failed to load, since it isn't one).
   static String _resolveImageUrl(String url) {
-    if (url.isEmpty || url.startsWith('http')) return url;
+    if (url.isEmpty || url.startsWith('http') || url.startsWith('assets/')) return url;
     final host = ApiService.baseUrl.replaceAll('/api/v1', '');
     return '$host$url';
   }
@@ -429,8 +433,9 @@ class CategoryRepository {
         .where((p) => _backendCategoryBelongsTo(_categoryName(p), category))
         .toList();
     if (filtered.isEmpty) {
-      // No backend products at all for this category yet -> show mock data.
-      return CategoryMockData.productsForCategory(categoryId);
+      // No real backend products for this category yet - return empty
+      // rather than falling back to unpurchasable mock filler.
+      return [];
     }
 
     final subs = category.subCategories;
@@ -442,24 +447,11 @@ class CategoryRepository {
       buckets[subIndex].add(_fromBackend(filtered[i], category, i));
     }
 
-    // Mock data is generated in chunks of 3 per subcategory, in the same
-    // order as category.subCategories, so slice it the same way to pad
-    // out any subcategory the backend doesn't have 3 items for yet.
-    final mockAll = CategoryMockData.productsForCategory(categoryId);
+    // Only real backend products are shown - every visible product is
+    // always purchasable (no mock filler that fails silently at checkout).
     final result = <ProductModel>[];
     for (var s = 0; s < bucketCount; s++) {
-      final backendItems = buckets[s];
-      result.addAll(backendItems);
-      final need = 3 - backendItems.length;
-      if (need > 0) {
-        final backendNames = backendItems.map((p) => p.name.toLowerCase()).toSet();
-        final fillers = mockAll
-            .skip(s * 3)
-            .take(3)
-            .where((p) => !backendNames.contains(p.name.toLowerCase()))
-            .take(need);
-        result.addAll(fillers);
-      }
+      result.addAll(buckets[s]);
     }
     return result;
   }

@@ -47,7 +47,7 @@ class TransactionCard extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(color: kGreen.withOpacity(0.12), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: kGreen.withValues(alpha: 0.12), shape: BoxShape.circle),
             child: Icon(_icon, color: kGreen, size: 20),
           ),
           const SizedBox(width: 12),
@@ -61,7 +61,7 @@ class TransactionCard extends StatelessWidget {
                     style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
                 const SizedBox(height: 2),
                 Text(DateFormat('d MMM yyyy').format(transaction.date),
-                    style: GoogleFonts.poppins(fontSize: 11, color: scheme.onSurface.withOpacity(0.5))),
+                    style: GoogleFonts.poppins(fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.5))),
               ],
             ),
           ),

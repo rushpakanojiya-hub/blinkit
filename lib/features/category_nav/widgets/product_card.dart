@@ -34,7 +34,7 @@ class ProductCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: scheme.outlineVariant.withOpacity(0.4)),
+          border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,7 +89,7 @@ class ProductCard extends StatelessWidget {
                 Icon(Icons.star, size: 12, color: Colors.amber[700]),
                 const SizedBox(width: 2),
                 Text('${product.rating.toStringAsFixed(1)} (${product.ratingCount})',
-                    style: GoogleFonts.poppins(fontSize: 10, color: scheme.onSurface.withOpacity(0.6))),
+                    style: GoogleFonts.poppins(fontSize: 10, color: scheme.onSurface.withValues(alpha: 0.6))),
               ],
             ),
             const SizedBox(height: 4),
@@ -101,7 +101,7 @@ class ProductCard extends StatelessWidget {
             Text('${product.brand} \u2022 ${product.weight}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(fontSize: 10.5, color: scheme.onSurface.withOpacity(0.55))),
+                style: GoogleFonts.poppins(fontSize: 10.5, color: scheme.onSurface.withValues(alpha: 0.55))),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -115,7 +115,7 @@ class ProductCard extends StatelessWidget {
                         Text('\u20b9${product.mrp.toStringAsFixed(0)}',
                             style: GoogleFonts.poppins(
                                 fontSize: 10.5,
-                                color: scheme.onSurface.withOpacity(0.45),
+                                color: scheme.onSurface.withValues(alpha: 0.45),
                                 decoration: TextDecoration.lineThrough)),
                     ],
                   ),
@@ -143,6 +143,24 @@ class _AddButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final cart = context.read<CartProvider>();
 
+    // Categories-tab filler items (shown when a category doesn't have
+    // enough real backend products) have non-numeric string ids and can
+    // never actually be purchased (CartProvider.addProduct blocks them).
+    // Show a disabled "Coming Soon" state instead of a green ADD button
+    // that looks tappable but always fails.
+    final isPurchasable = int.tryParse(product.id) != null;
+    if (!isPurchasable) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text('Coming Soon',
+            style: GoogleFonts.poppins(
+                fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+      );
+    }
     if (qty == 0) {
       return GestureDetector(
         onTap: () async {

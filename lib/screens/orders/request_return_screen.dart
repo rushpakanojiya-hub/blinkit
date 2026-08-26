@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../models/order_model.dart';
@@ -89,7 +89,7 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             Text('Order #${order.id}',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: scheme.onSurface.withOpacity(0.6))),
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 16),
             Text('Select items to return',
                 style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: scheme.onSurface)),
@@ -162,8 +162,8 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
               children: [
                 Text(item.name,
                     style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-                Text('Qty ordered: ${item.quantity} · ₹${item.price} each',
-                    style: GoogleFonts.poppins(fontSize: 11, color: scheme.onSurface.withOpacity(0.6))),
+                Text('Qty ordered: ${item.quantity} Â· â‚¹${item.price} each',
+                    style: GoogleFonts.poppins(fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.6))),
               ],
             ),
           ),
@@ -192,3 +192,4 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
     );
   }
 }
+

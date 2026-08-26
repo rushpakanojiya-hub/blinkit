@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -341,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(40),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.25),
+                          color: Colors.black.withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -857,7 +857,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               width: 170,
                               child: Text(promo['subtitle'],
                                   style: GoogleFonts.poppins(
-                                      color: promo['textColor'].withOpacity(0.75),
+                                      color: promo['textColor'].withValues(alpha: 0.75),
                                       fontSize: 12)),
                             ),
                           ],
@@ -1070,7 +1070,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.grey.withOpacity(0.1), blurRadius: 8)
+                          color: Colors.grey.withValues(alpha: 0.1), blurRadius: 8)
                     ],
                   ),
                   child: Column(

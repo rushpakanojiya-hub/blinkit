@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 /// Icon-based placeholder used wherever a product/category photo would
-/// normally go. Mock data has no real image URLs — swap this out for
+/// normally go. Mock data has no real image URLs â€” swap this out for
 /// `CachedNetworkImage`/`Image.asset` per item once real assets exist.
 class CategoryPlaceholderImage extends StatelessWidget {
   final IconData icon;
@@ -23,7 +23,7 @@ class CategoryPlaceholderImage extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Icon(icon, color: color, size: size * 0.48),

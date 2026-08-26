@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
@@ -204,6 +204,38 @@ class _AddressScreenState extends State<AddressScreen> {
   // For 'cod' this is the whole flow (no Razorpay). For 'online' this
   // creates the order then opens Razorpay checkout.
   void _placeOrder() async {
+    // A previous online-payment attempt may have already created a real
+    // order and consumed the cart server-side, then the payment itself
+    // failed (cancelled, network drop, etc). Trying to checkout again
+    // here would hit an empty cart. If we already have a pending order,
+    // retry Razorpay if still on "online"; if switched to "cod", the
+    // order is already placed either way - just open it.
+    if (_currentOrderId != null) {
+      if (_paymentMethod != 'online') {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const OrderScreen()),
+          );
+        }
+        return;
+      }
+      setState(() => _isLoading = true);
+      try {
+        final orderData = await ApiService.createPaymentOrder(_currentOrderId!);
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        _openRazorpayCheckout(orderData);
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not retry payment: $e')),
+          );
+        }
+      }
+      return;
+    }
     // Some catalog items (shown via the Categories tab's mock filler
     // products) never sync to the backend cart - they only live in
     // CartProvider.localCartItems. If the cart total shown to the user is
@@ -281,6 +313,23 @@ class _AddressScreenState extends State<AddressScreen> {
       ));
     }
     setState(() => _isLoading = false);
+  }
+
+  void _openRazorpayCheckout(Map<String, dynamic> orderData) {
+    var options = {
+      'key': orderData['key_id'],
+      'amount': orderData['amount'],
+      'name': 'Mepto',
+      'order_id': orderData['razorpay_order_id'],
+      'description': 'Grocery Order',
+      'prefill': {
+        'contact': '9999999999',
+        'email': 'test@mepto.com',
+      },
+      'method': {'upi': true, 'card': true, 'netbanking': true, 'wallet': true},
+      'theme': {'color': '#D4A574'},
+    };
+    _razorpay.open(options);
   }
 
   void _showAddressSheet({int? editIndex}) {
@@ -549,7 +598,7 @@ class _AddressScreenState extends State<AddressScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 8)
+          BoxShadow(color: Colors.grey.withValues(alpha: 0.08), blurRadius: 8)
         ],
       ),
       child: Column(
@@ -590,7 +639,7 @@ class _AddressScreenState extends State<AddressScreen> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF0C831F).withOpacity(0.08)
+              ? const Color(0xFF0C831F).withValues(alpha: 0.08)
               : Colors.grey[50],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -677,7 +726,7 @@ class _AddressScreenState extends State<AddressScreen> {
                     width: 2),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.grey.withOpacity(0.08),
+                      color: Colors.grey.withValues(alpha: 0.08),
                       blurRadius: 8)
                 ],
               ),
@@ -687,7 +736,7 @@ class _AddressScreenState extends State<AddressScreen> {
                   Container(
                     width: 44, height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0C831F).withOpacity(0.1),
+                      color: const Color(0xFF0C831F).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(address['icon'],
@@ -744,14 +793,26 @@ class _AddressScreenState extends State<AddressScreen> {
                             ),
                             const SizedBox(width: 16),
                             GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _addresses.removeAt(index);
-                                  if (_selectedAddress >= _addresses.length) {
-                                    _selectedAddress = 0;
+                              onTap: () async {
+                                final backendId = address['backend_id'];
+                                try {
+                                  if (backendId != null) {
+                                    await ApiService.deleteAddress(backendId.toString());
                                   }
-                                });
-                                _saveAddresses();
+                                  setState(() {
+                                    _addresses.removeAt(index);
+                                    if (_selectedAddress >= _addresses.length) {
+                                      _selectedAddress = 0;
+                                    }
+                                  });
+                                  _saveAddresses();
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Failed to delete address: $e')),
+                                    );
+                                  }
+                                }
                               },
                               child: Text('Delete',
                                   style: GoogleFonts.poppins(
@@ -775,7 +836,7 @@ class _AddressScreenState extends State<AddressScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10)
+            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10)
           ],
         ),
         child: ElevatedButton(
@@ -802,6 +863,8 @@ class _AddressScreenState extends State<AddressScreen> {
     );
   }
 }
+
+
 
 
 

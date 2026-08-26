@@ -160,7 +160,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFF0C831F).withOpacity(0.1)
+                            ? const Color(0xFF0C831F).withValues(alpha: 0.1)
                             : Colors.transparent,
                         border: Border(
                           left: BorderSide(
@@ -257,7 +257,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         color: const Color(0xFF0C831F),
                         borderRadius: BorderRadius.circular(40),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 4)),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 10, offset: const Offset(0, 4)),
                         ],
                       ),
                       child: Row(

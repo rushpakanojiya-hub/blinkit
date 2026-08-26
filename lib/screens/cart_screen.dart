@@ -422,7 +422,7 @@ class _CartScreenState extends State<CartScreen> {
                   decoration: BoxDecoration(
                     color: kLightGreenBg,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: kBrandGreen.withOpacity(0.4)),
+                    border: Border.all(color: kBrandGreen.withValues(alpha: 0.4)),
                   ),
                   child: Row(
                     children: [

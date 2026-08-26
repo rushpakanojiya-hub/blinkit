@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class CartProvider extends ChangeNotifier {
@@ -72,25 +72,15 @@ class CartProvider extends ChangeNotifier {
         : (productId is String ? int.tryParse(productId) : null);
 
     if (realId == null || realId <= 0) {
-      // Demo/mock product without a real backend id -- add to the
-      // local-only cart instead of failing.
-      final key = productId.toString();
-      final existing = _localItems[key];
-      if (existing != null) {
-        existing['quantity'] = (existing['quantity'] as int) + quantity;
-      } else {
-        _localItems[key] = {
-          'id': key,
-          'name': productData?['name'] ?? 'Item',
-          'price': productData?['price'] ?? 0,
-          'image': productData?['image'] ?? '',
-          'quantity': quantity,
-        };
-      }
-      notifyListeners();
-      return;
+      // This product doesn't exist in the real backend catalog (a
+      // Categories-tab filler item shown when a category has too few
+      // real products). Previously this silently added to a local-only
+      // cart that displayed a total but could never actually be checked
+      // out, causing a confusing "cart is empty" error at payment time.
+      // Block it here instead, at the single source of truth for adding
+      // to cart, so every screen gets the same clear behavior.
+      throw Exception('This item is not available for purchase yet.');
     }
-
     try {
       final data = await ApiService.addToCart(realId, quantity);
       _items = data['items'] ?? [];

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/category_models.dart';
@@ -171,7 +171,7 @@ class _ActionChip extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border.all(color: highlighted ? scheme.primary : Colors.grey.shade300),
           borderRadius: BorderRadius.circular(10),
-          color: highlighted ? scheme.primary.withOpacity(0.08) : null,
+          color: highlighted ? scheme.primary.withValues(alpha: 0.08) : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

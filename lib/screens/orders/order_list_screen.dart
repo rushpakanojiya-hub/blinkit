@@ -49,7 +49,7 @@ class _OrderListScreenState extends State<OrderListScreen> with SingleTickerProv
         bottom: TabBar(
           controller: _tabController,
           labelColor: kGreen,
-          unselectedLabelColor: scheme.onSurface.withOpacity(0.5),
+          unselectedLabelColor: scheme.onSurface.withValues(alpha: 0.5),
           indicatorColor: kGreen,
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
           tabs: const [Tab(text: 'Active'), Tab(text: 'Delivered'), Tab(text: 'Cancelled')],

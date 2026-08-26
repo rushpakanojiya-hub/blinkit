@@ -151,7 +151,7 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
                       color: const Color(0xFF0C831F),
                       borderRadius: BorderRadius.circular(40),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 4)),
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 10, offset: const Offset(0, 4)),
                       ],
                     ),
                     child: Row(
@@ -184,7 +184,7 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
 
   Widget _buildBanner(BuildContext context, CategoryModel category) {
     return Container(
-      color: category.color.withOpacity(0.10),
+      color: category.color.withValues(alpha: 0.10),
       padding: const EdgeInsets.fromLTRB(4, 4, 12, 12),
       child: Row(
         children: [

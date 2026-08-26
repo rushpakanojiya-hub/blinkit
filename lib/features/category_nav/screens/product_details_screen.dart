@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/cart_provider.dart';
@@ -297,7 +297,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, -2))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, -2))],
         ),
         child: Row(
           children: [
@@ -337,7 +337,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             Expanded(
               child: qty == 0
                   ? ElevatedButton(
-                      onPressed: !product.inStock
+                      onPressed: (!product.inStock || int.tryParse(product.id) == null)
                           ? null
                           : () => cart.increment(product.id, productData: productCartData(product)),
                       style: ElevatedButton.styleFrom(
@@ -345,7 +345,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: Text('Add to Cart',
+                      child: Text(int.tryParse(product.id) == null ? 'Coming Soon' : 'Add to Cart',
                           style: GoogleFonts.poppins(
                               color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                     )

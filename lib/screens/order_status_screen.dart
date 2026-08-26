@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -259,7 +259,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.grey.withOpacity(0.1), blurRadius: 10)
+                      color: Colors.grey.withValues(alpha: 0.1), blurRadius: 10)
                 ],
               ),
               child: Column(
@@ -319,7 +319,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.grey.withOpacity(0.08), blurRadius: 8)
+                      color: Colors.grey.withValues(alpha: 0.08), blurRadius: 8)
                 ],
               ),
               child: Column(
@@ -330,7 +330,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0C831F).withOpacity(0.1),
+                          color: const Color(0xFF0C831F).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(Icons.shopping_bag_outlined,
@@ -436,7 +436,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.grey.withOpacity(0.08), blurRadius: 8)
+                      color: Colors.grey.withValues(alpha: 0.08), blurRadius: 8)
                 ],
               ),
               child: _isLoadingTracking
@@ -459,7 +459,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
                             CircleAvatar(
                               radius: 24,
                               backgroundColor:
-                              const Color(0xFF0C831F).withOpacity(0.2),
+                              const Color(0xFF0C831F).withValues(alpha: 0.2),
                               child: const Icon(Icons.delivery_dining,
                                   color: Color(0xFF0C831F), size: 28),
                             ),
@@ -494,7 +494,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.pink.withOpacity(0.3)),
+                  border: Border.all(color: Colors.pink.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,7 +558,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.grey.withOpacity(0.08), blurRadius: 8)
+                        color: Colors.grey.withValues(alpha: 0.08), blurRadius: 8)
                   ],
                 ),
                 child: Row(
@@ -566,7 +566,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0C831F).withOpacity(0.1),
+                        color: const Color(0xFF0C831F).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(Icons.receipt_long_outlined,

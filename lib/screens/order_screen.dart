@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/order_provider.dart';
@@ -207,7 +207,7 @@ class _OrderScreenState extends State<OrderScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.grey.withOpacity(0.08),
+                    color: Colors.grey.withValues(alpha: 0.08),
                     blurRadius: 8)
               ],
             ),
@@ -217,7 +217,7 @@ class _OrderScreenState extends State<OrderScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color:
-                    const Color(0xFF0C831F).withOpacity(0.05),
+                    const Color(0xFF0C831F).withValues(alpha: 0.05),
                     borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(16)),
                   ),
@@ -244,7 +244,7 @@ class _OrderScreenState extends State<OrderScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
+                          color: Colors.green.withValues(alpha: 0.1),
                           borderRadius:
                           BorderRadius.circular(20),
                         ),

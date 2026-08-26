@@ -26,7 +26,7 @@ class CategoryTile extends StatelessWidget {
                       height: tileSize,
                       padding: EdgeInsets.zero,
                       decoration: BoxDecoration(
-                        color: category.color.withOpacity(0.10),
+                        color: category.color.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: ClipRRect(

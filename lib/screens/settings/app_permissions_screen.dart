@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 const Color kGreen = Color(0xFF0C831F);
 
@@ -81,7 +81,7 @@ class _AppPermissionsScreenState extends State<AppPermissionsScreen> {
   Widget _buildPermissionTile(_PermissionItem item) {
     return SwitchListTile(
       value: item.granted,
-      activeColor: kGreen,
+      activeThumbColor: kGreen,
       secondary: Icon(item.icon, color: kGreen),
       title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(item.description),

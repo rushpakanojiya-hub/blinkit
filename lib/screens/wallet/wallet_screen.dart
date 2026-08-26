@@ -52,7 +52,7 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
           TabBar(
             controller: _tabController,
             labelColor: kGreen,
-            unselectedLabelColor: scheme.onSurface.withOpacity(0.5),
+            unselectedLabelColor: scheme.onSurface.withValues(alpha: 0.5),
             indicatorColor: kGreen,
             labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
             tabs: const [Tab(text: 'Transactions'), Tab(text: 'Cashback'), Tab(text: 'Refunds')],

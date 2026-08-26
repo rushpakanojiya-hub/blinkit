@@ -163,7 +163,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       color: Theme.of(context).colorScheme.surface,
                       shape: BoxShape.circle,
                       boxShadow: [BoxShadow(
-                          color: Colors.grey.withOpacity(0.3), blurRadius: 8)],
+                          color: Colors.grey.withValues(alpha: 0.3), blurRadius: 8)],
                     ),
                     child: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
                   ),
@@ -178,7 +178,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         color: Theme.of(context).colorScheme.surface,
                         shape: BoxShape.circle,
                         boxShadow: [BoxShadow(
-                            color: Colors.grey.withOpacity(0.3), blurRadius: 8)],
+                            color: Colors.grey.withValues(alpha: 0.3), blurRadius: 8)],
                       ),
                       child: Icon(
                         isWishlisted ? Icons.favorite : Icons.favorite_border,
@@ -532,7 +532,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 boxShadow: [BoxShadow(
-                    color: Colors.grey.withOpacity(0.2), blurRadius: 10)],
+                    color: Colors.grey.withValues(alpha: 0.2), blurRadius: 10)],
               ),
               child: Row(
                 children: [

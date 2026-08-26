@@ -20,9 +20,9 @@ class EmptyView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: scheme.onSurface.withOpacity(0.3)),
+          Icon(icon, size: 64, color: scheme.onSurface.withValues(alpha: 0.3)),
           const SizedBox(height: 12),
-          Text(message, style: GoogleFonts.poppins(fontSize: 14, color: scheme.onSurface.withOpacity(0.6))),
+          Text(message, style: GoogleFonts.poppins(fontSize: 14, color: scheme.onSurface.withValues(alpha: 0.6))),
         ],
       ),
     );
@@ -46,7 +46,7 @@ class ErrorView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(message,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(fontSize: 13, color: scheme.onSurface.withOpacity(0.7))),
+                style: GoogleFonts.poppins(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.7))),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
