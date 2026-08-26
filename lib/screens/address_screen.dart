@@ -13,11 +13,13 @@ import 'location_picker_screen.dart';
 class AddressScreen extends StatefulWidget {
   final List<Map<String, dynamic>> items;
   final int totalAmount;
+  final String? couponCode;
 
   const AddressScreen({
     super.key,
     required this.items,
     required this.totalAmount,
+    this.couponCode,
   });
 
   @override
@@ -30,6 +32,7 @@ class _AddressScreenState extends State<AddressScreen> {
   bool _isLoading = false;
   int? _currentOrderId;
   String _paymentMethod = 'online'; // 'online' or 'cod'
+  bool _useWallet = false;
 
   List<Map<String, dynamic>> _addresses = [];
 
@@ -264,6 +267,8 @@ class _AddressScreenState extends State<AddressScreen> {
       final order = await ApiService.checkout(
         addressId: addressId,
         paymentMethod: _paymentMethod,
+        couponCode: widget.couponCode,
+        useWallet: _useWallet,
       );
       if (order['id'] == null) {
         throw Exception(order['error']?.toString() ?? 'Checkout failed');
@@ -621,6 +626,18 @@ class _AddressScreenState extends State<AddressScreen> {
             subtitle: 'Pay when your order arrives',
             icon: Icons.payments_outlined,
           ),
+          const SizedBox(height: 12),
+          CheckboxListTile(
+            value: _useWallet,
+            onChanged: (val) => setState(() => _useWallet = val ?? false),
+            title: Text('Use Wallet Balance',
+                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500)),
+            subtitle: Text('Apply your GoFresh Money balance to this order',
+                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+            activeColor: const Color(0xFF0C831F),
+          ),
         ],
       ),
     );
@@ -863,6 +880,7 @@ class _AddressScreenState extends State<AddressScreen> {
     );
   }
 }
+
 
 
 
