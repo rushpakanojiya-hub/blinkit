@@ -260,6 +260,20 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  static Future<Map<String, dynamic>> validateCoupon(String code, double orderAmount) async {
+    final headers = await getHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/coupons/validate'),
+      headers: headers,
+      body: jsonEncode({'code': code, 'order_amount': orderAmount}),
+    ).timeout(_timeout);
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw Exception((data['error'] ?? 'Invalid coupon code').toString());
+    }
+    return data;
+  }
+
   static Future<Map<String, dynamic>> createPaymentOrder(int orderId) async {
     final headers = await getHeaders();
     final response = await http.post(
@@ -350,6 +364,7 @@ class ApiService {
     return data['return_requests'] ?? [];
   }
 }
+
 
 
 

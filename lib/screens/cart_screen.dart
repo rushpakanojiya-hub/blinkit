@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -19,24 +19,6 @@ class CartScreen extends StatefulWidget {
   State<CartScreen> createState() => _CartScreenState();
 }
 
-class _CouponInfo {
-  final String code;
-  final String description;
-  final bool isPercent;
-  final double value;
-  final double maxDiscount;
-  final double minCartValue;
-
-  const _CouponInfo({
-    required this.code,
-    required this.description,
-    required this.isPercent,
-    required this.value,
-    this.maxDiscount = double.infinity,
-    this.minCartValue = 0,
-  });
-}
-
 class _CartScreenState extends State<CartScreen> {
   static const int deliveryFee = 25;
   static const int platformFee = 5;
@@ -46,31 +28,7 @@ class _CartScreenState extends State<CartScreen> {
   String? _appliedCouponCode;
   double _discount = 0;
   String? _couponError;
-
-  static const List<_CouponInfo> _availableCoupons = [
-    _CouponInfo(
-      code: 'SAVE50',
-      description: 'Flat off on orders above 200',
-      isPercent: false,
-      value: 50,
-      minCartValue: 200,
-    ),
-    _CouponInfo(
-      code: 'SAVE100',
-      description: 'Flat off on orders above 500',
-      isPercent: false,
-      value: 100,
-      minCartValue: 500,
-    ),
-    _CouponInfo(
-      code: 'WELCOME10',
-      description: '10% off up to 50 on your order',
-      isPercent: true,
-      value: 10,
-      maxDiscount: 50,
-      minCartValue: 0,
-    ),
-  ];
+  bool _isValidatingCoupon = false;
 
   @override
   void dispose() {
@@ -78,7 +36,7 @@ class _CartScreenState extends State<CartScreen> {
     super.dispose();
   }
 
-  void _applyCoupon(double cartTotal) {
+  Future<void> _applyCoupon(double cartTotal) async {
     final code = _couponController.text.trim().toUpperCase();
     if (code.isEmpty) {
       setState(() {
@@ -86,48 +44,53 @@ class _CartScreenState extends State<CartScreen> {
       });
       return;
     }
-
-    final match = _availableCoupons.where((c) => c.code == code).toList();
-    if (match.isEmpty) {
+    if (cartTotal <= 0) {
       setState(() {
-        _couponError = 'Invalid coupon code';
+        _couponError = 'Add items to your cart before applying a coupon';
         _appliedCouponCode = null;
         _discount = 0;
       });
       return;
     }
-
-    final coupon = match.first;
-    if (cartTotal < coupon.minCartValue) {
-      setState(() {
-        _couponError =
-            'Add items worth ${coupon.minCartValue.toStringAsFixed(0)} to use this coupon';
-        _appliedCouponCode = null;
-        _discount = 0;
-      });
-      return;
-    }
-
-    double discount = coupon.isPercent
-        ? (cartTotal * coupon.value / 100)
-        : coupon.value;
-    if (discount > coupon.maxDiscount) discount = coupon.maxDiscount;
-    if (discount > cartTotal) discount = cartTotal;
 
     setState(() {
-      _appliedCouponCode = coupon.code;
-      _discount = discount;
+      _isValidatingCoupon = true;
       _couponError = null;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-            'Coupon ${coupon.code} applied! You saved ${discount.toStringAsFixed(0)}'),
-        backgroundColor: kBrandGreen,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    try {
+      // Always validate against the backend (POST /coupons/validate) so
+      // dynamic coupons created in the admin panel work, and so the
+      // discount amount/eligibility rules can never be bypassed or go
+      // stale by hardcoding them client-side.
+      final result = await ApiService.validateCoupon(code, cartTotal);
+      final discount = (result['discount_amount'] is num)
+          ? (result['discount_amount'] as num).toDouble()
+          : 0.0;
+      if (!mounted) return;
+      setState(() {
+        _appliedCouponCode = (result['code'] ?? code).toString();
+        _discount = discount;
+        _couponError = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Coupon $_appliedCouponCode applied! You saved ${discount.toStringAsFixed(0)}'),
+          backgroundColor: kBrandGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _couponError = e.toString().replaceFirst('Exception: ', '');
+        _appliedCouponCode = null;
+        _discount = 0;
+      });
+    } finally {
+      if (mounted) setState(() => _isValidatingCoupon = false);
+    }
   }
 
   void _removeCoupon() {
@@ -180,7 +143,7 @@ class _CartScreenState extends State<CartScreen> {
 
   String _imageUrl(String? raw) {
     if (raw == null || raw.isEmpty) return '';
-    if (raw.startsWith('http')) return raw;
+    if (raw.startsWith('http') || raw.startsWith('assets/')) return raw;
     final host = ApiService.baseUrl.replaceAll('/api/v1', '');
     return '$host$raw';
   }
@@ -427,14 +390,23 @@ class _CartScreenState extends State<CartScreen> {
                       borderRadius: BorderRadius.circular(10),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(10),
-                        onTap: () => _applyCoupon(cartTotal.toDouble()),
+                        onTap: _isValidatingCoupon
+                            ? null
+                            : () => _applyCoupon(cartTotal.toDouble()),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-                          child: Text('Apply',
-                              style: GoogleFonts.poppins(
-                                  color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                        ),
+                          child: _isValidatingCoupon
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
+                                )
+                              : Text('Apply',
+                                  style: GoogleFonts.poppins(
+                                      color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                       ),
+                    ),
                     ),
                   ],
                 ),
@@ -444,27 +416,6 @@ class _CartScreenState extends State<CartScreen> {
                       style: GoogleFonts.poppins(fontSize: 12, color: Colors.red)),
                 ],
                 const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _availableCoupons.map((c) => InkWell(
-                    onTap: () {
-                      _couponController.text = c.code;
-                      _applyCoupon(cartTotal.toDouble());
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: kLightGreenBg,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: kBrandGreen.withOpacity(0.3)),
-                      ),
-                      child: Text(c.code,
-                          style: GoogleFonts.poppins(
-                              fontSize: 11, fontWeight: FontWeight.w600, color: kBrandGreen)),
-                    ),
-                  )).toList(),
-                ),
               ] else
                 Container(
                   padding: const EdgeInsets.all(10),
