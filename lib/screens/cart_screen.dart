@@ -20,9 +20,9 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  static const int deliveryFee = 25;
+  static const int deliveryFee = 50;
   static const int platformFee = 5;
-  static const double freeDeliveryThreshold = 299;
+  static const double freeDeliveryThreshold = 500;
 
   final TextEditingController _couponController = TextEditingController();
   String? _appliedCouponCode;
@@ -487,6 +487,7 @@ class _CartScreenState extends State<CartScreen> {
                           builder: (_) => AddressScreen(
                             items: items,
                             totalAmount: grandTotal,
+                            couponCode: _appliedCouponCode,
                           ),
                         ),
                       );
@@ -551,3 +552,4 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 }
+
