@@ -1,4 +1,4 @@
-import '../services/api_service.dart';
+﻿import '../services/api_service.dart';
 
 enum OrderStatus { active, delivered, cancelled }
 
@@ -124,8 +124,8 @@ class Order {
   static String _formatAddress(dynamic addr) {
     if (addr is! Map) return '';
     final parts = [
-      addr['address_line'],
-      addr['landmark'],
+      addr['line1'],
+      addr['line2'],
       addr['city'],
       addr['state'],
       addr['pincode'],
@@ -150,10 +150,24 @@ class Order {
           OrderTimelineStep(title: 'Out for delivery', time: null, completed: false),
           OrderTimelineStep(title: 'Delivered', time: null, completed: false),
         ];
+      case 'picking':
+      case 'picked':
+      case 'packing':
+      case 'packed':
+        return [
+          placed,
+          OrderTimelineStep(title: 'Confirmed', time: 'Confirmed', completed: true),
+          OrderTimelineStep(title: 'Preparing your order', time: 'Preparing', completed: true),
+          OrderTimelineStep(title: 'Out for delivery', time: null, completed: false),
+          OrderTimelineStep(title: 'Delivered', time: null, completed: false),
+        ];
+      case 'ready_for_dispatch':
+      case 'handed_over':
       case 'shipped':
         return [
           placed,
           OrderTimelineStep(title: 'Confirmed', time: 'Confirmed', completed: true),
+          OrderTimelineStep(title: 'Preparing your order', time: 'Preparing', completed: true),
           OrderTimelineStep(title: 'Out for delivery', time: 'Dispatched', completed: true),
           OrderTimelineStep(title: 'Delivered', time: null, completed: false),
         ];
