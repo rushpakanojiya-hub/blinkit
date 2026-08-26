@@ -41,6 +41,22 @@ class OrderRepository {
 
   Future<Order> fetchOrderDetails(String id) async {
     final all = await _loadAll();
-    return all.firstWhere((o) => o.id == id);
+    for (final o in all) {
+      if (o.id == id) return o;
+    }
+    // Not in the cached list (e.g. opened via push notification/deep link
+    // before the list has ever been loaded, or the order is newer than the
+    // cached page) - fall back to a direct network fetch instead of
+    // crashing with an unhandled StateError from firstWhere.
+    final orderIdInt = int.tryParse(id);
+    if (orderIdInt != null) {
+      try {
+        final raw = await ApiService.getOrder(orderIdInt);
+        return Order.fromJson(raw);
+      } catch (_) {
+        // fall through to the exception below
+      }
+    }
+    throw Exception('Order not found. It may have been removed or the link is invalid.');
   }
 }

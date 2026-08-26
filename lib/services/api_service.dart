@@ -1,9 +1,9 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://98-92-212-18.sslip.io/api/v1';
+  static const String baseUrl = 'https://32-196-3-31.sslip.io/api/v1';
 
   static const Duration _timeout = Duration(seconds: 30);
 
@@ -210,6 +210,24 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  static Future<void> deleteAddress(String id) async {
+    final headers = await getHeaders();
+    final response = await http.delete(
+      Uri.parse('$baseUrl/addresses/$id'),
+      headers: headers,
+    ).timeout(_timeout);
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      String errMsg = 'status ${response.statusCode}: ${response.body}';
+      try {
+        final data = jsonDecode(response.body);
+        if (data is Map && data['error'] != null) {
+          errMsg = '${response.statusCode}: ${data['error']}';
+        }
+      } catch (_) {}
+      throw Exception(errMsg);
+    }
+  }
+
   // ---- Orders / checkout / payment / returns ----
 
   static Future<List<dynamic>> getOrders({int page = 1, int limit = 100}) async {
@@ -270,6 +288,18 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  static Future<Map<String, dynamic>> getOrder(int orderId) async {
+    final headers = await getHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/orders/$orderId'),
+      headers: headers,
+    ).timeout(_timeout);
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load order');
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   static Future<Map<String, dynamic>> getOrderTracking(int orderId) async {
     final headers = await getHeaders();
     final response = await http.get(
@@ -320,6 +350,10 @@ class ApiService {
     return data['return_requests'] ?? [];
   }
 }
+
+
+
+
 
 
 

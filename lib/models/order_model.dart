@@ -207,9 +207,10 @@ class Order {
       paymentStatus: (json['payment_status'] ?? 'pending').toString(),
       itemTotal: (json['items_amount'] is num) ? (json['items_amount'] as num).round() : 0,
       deliveryFee: (json['delivery_charge'] is num) ? (json['delivery_charge'] as num).round() : 0,
-      platformFee: 0,
+      platformFee: (json['platform_fee'] is num) ? (json['platform_fee'] as num).round() : 0,
       discount: (json['wallet_amount_used'] is num) ? (json['wallet_amount_used'] as num).round() : 0,
       timeline: _buildTimeline(rawStatus),
     );
   }
 }
+
