@@ -1,4 +1,4 @@
-import '../../../services/api_service.dart';
+﻿import '../../../services/api_service.dart';
 import '../data/category_mock_data.dart';
 import '../models/category_models.dart';
 
@@ -134,6 +134,7 @@ class CategoryRepository {
       'cucumber', 'peas', 'corn', 'mushroom', 'garlic', 'ginger',
       'chilli', 'chili', 'beans', 'beetroot', 'pumpkin', 'radish',
       'gourd', 'coriander', 'methi', 'drumstick', 'lauki',
+      'green leaves', 'leafy', 'saag', 'vegetable', 'veggies',
     ],
     'cat_veg_fruits_sub1': [ // Fresh Fruits
       'apple', 'banana', 'mango', 'orange', 'papaya', 'watermelon',
