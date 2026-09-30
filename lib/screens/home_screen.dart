@@ -1,14 +1,16 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/location_service.dart';
 import '../providers/cart_provider.dart';
 import '../providers/product_provider.dart';
+import '../features/category_nav/repositories/category_repository.dart';
+import 'select_location_screen.dart';
 import '../constants/asset_constants.dart';
 import 'cart_screen.dart';
-import 'select_location_screen.dart';
 import 'search_screen.dart';
 import 'categories_screen.dart';
 import 'profile_screen.dart';
@@ -31,14 +33,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   String _currentAddress = 'Mumbai, Maharashtra';
+  bool _loadingLocation = false;
 
   Future<void> _openSelectLocation() async {
-    final result = await Navigator.push<String>(
+    final result = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(builder: (_) => const SelectLocationScreen()),
     );
-    if (result != null && result.trim().isNotEmpty && mounted) {
-      setState(() => _currentAddress = result);
+    if (result == null || !mounted) return;
+    final address = result['address'] as String?;
+    final lat = (result['lat'] as num?)?.toDouble();
+    final lng = (result['lng'] as num?)?.toDouble();
+    if (address != null) setState(() => _currentAddress = address);
+    if (lat != null && lng != null) {
+      CategoryRepository.updateLocation(lat, lng);
+      context.read<ProductProvider>().loadProducts();
     }
   }
 
@@ -162,11 +171,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                               GestureDetector(
-                                onTap: _openSelectLocation,
+                                onTap: _loadingLocation ? null : _openSelectLocation,
                                 child: Row(
                                 children: [
                                   const Icon(Icons.location_on, color: Colors.white, size: 14),
-                                  Flexible(child: Text(_currentAddress, overflow: TextOverflow.ellipsis,
+                                  Flexible(child: Text(_loadingLocation ? 'Fetching...' : _currentAddress, overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.poppins(
                                           color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
                                   const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 16),
@@ -341,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(40),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.25),
+                          color: Colors.black.withOpacity(0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -857,7 +866,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               width: 170,
                               child: Text(promo['subtitle'],
                                   style: GoogleFonts.poppins(
-                                      color: promo['textColor'].withValues(alpha: 0.75),
+                                      color: promo['textColor'].withOpacity(0.75),
                                       fontSize: 12)),
                             ),
                           ],
@@ -941,22 +950,60 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                        child: _buildImage(product['image'], height: 90),
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                            child: _buildImage(product['image'], height: 90),
+                          ),
+                          if (product['inStock'] == false)
+                            Positioned(
+                              top: 6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.75),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'Out of stock',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       Padding(
                         padding: const EdgeInsets.all(6),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(product['name'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600)),
+                            SizedBox(height: 38, child: Text(product['name'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600))),
                             const SizedBox(height: 4),
                             Text('\u20b9${product['price']}',
                                 style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 6),
-                            qty == 0
+                            (product['inStock'] == false)
+                                ? GestureDetector(
+                                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('We will notify you'))),
+                                    child: Container(
+                                      width: double.infinity,
+                                      alignment: Alignment.center,
+                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      decoration: BoxDecoration(
+                                          border: Border.all(color: const Color(0xFF0C831F)),
+                                          borderRadius: BorderRadius.circular(6)),
+                                      child: Text('Notify',
+                                          style: GoogleFonts.poppins(color: const Color(0xFF0C831F), fontSize: 11, fontWeight: FontWeight.bold)),
+                                    ),
+                                  )
+                                : qty == 0
                                 ? GestureDetector(
                                     onTap: () => context.read<CartProvider>().increment(product['id'], productData: product),
                                     child: Container(
@@ -1070,16 +1117,40 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.1), blurRadius: 8)
+                          color: Colors.grey.withOpacity(0.1), blurRadius: 8)
                     ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(16)),
-                        child: _buildImage(product['image']),
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(16)),
+                            child: _buildImage(product['image']),
+                          ),
+                          if (product['inStock'] == false)
+                            Positioned(
+                              top: 6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.75),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'Out of stock',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       Padding(
                         padding: const EdgeInsets.all(8),
@@ -1189,3 +1260,5 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+
