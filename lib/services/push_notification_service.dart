@@ -6,6 +6,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'api_service.dart';
 import '../screens/order_screen.dart';
+import '../screens/order_status_screen.dart';
+import '../providers/order_provider.dart';
+import 'package:provider/provider.dart';
 import '../screens/orders/order_details_screen.dart';
 
 /// Handles Firebase push notification setup: initializing Firebase,
@@ -36,9 +39,20 @@ class PushNotificationService {
       _openOrders();
       return;
     }
-    navigatorKey.currentState?.push(
-      MaterialPageRoute(builder: (_) => OrderDetailsScreen(orderId: orderId)),
-    );
+    _openStatus(orderId);
+  }
+
+  static Future<void> _openStatus(String orderId) async {
+    final nav = navigatorKey.currentState;
+    final ctx = navigatorKey.currentContext;
+    if (nav == null || ctx == null) return;
+    try {
+      final order = await ctx.read<OrderProvider>().fetchDetails(orderId);
+      nav.push(MaterialPageRoute(builder: (_) => OrderStatusScreen(order: order)));
+    } catch (e) {
+      debugPrint('open order failed: $e');
+      nav.push(MaterialPageRoute(builder: (_) => OrderDetailsScreen(orderId: orderId)));
+    }
   }
 
   static void _openOrders() {
