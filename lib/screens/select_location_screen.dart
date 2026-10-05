@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/location_service.dart';
 import '../services/nominatim_service.dart';
@@ -81,7 +82,9 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     try {
       // Triggers the native location permission prompt if not yet granted.
       final result = await LocationService.getCurrentLocation();
-      if (mounted) Navigator.pop(context, result.displayAddress);
+      if (mounted) {
+        Navigator.pop(context, {'address': result.displayAddress, 'lat': result.latitude, 'lng': result.longitude});
+      }
     } catch (e) {
       setState(() {
         _locateError = e.toString().replaceFirst('Exception: ', '');
@@ -123,6 +126,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     double? capturedLng;
     String? locationErrorModal;
     bool isSaving = false;
+    String? formError;
 
     showModalBottomSheet(
       context: context,
@@ -257,7 +261,23 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                   _buildTextField(nameController, "Receiver's Name", Icons.person_outline),
                   const SizedBox(height: 12),
                   _buildTextField(phoneController, "Receiver's Phone Number",
-                      Icons.phone_outlined, keyboardType: TextInputType.phone),
+                      Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      maxLength: 10),
+                  if (formError != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      margin: const EdgeInsets.only(top: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(formError!,
+                          style: GoogleFonts.poppins(color: Colors.white, fontSize: 13)),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
@@ -267,22 +287,18 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                           : () async {
                               if (nameController.text.isEmpty ||
                                   addressController.text.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: Text('Please fill all fields',
-                                      style: GoogleFonts.poppins()),
-                                  backgroundColor: Colors.red,
-                                  behavior: SnackBarBehavior.floating,
-                                ));
+                                setModalState(() => formError = 'Please fill all fields');
                                 return;
                               }
 
-                              setModalState(() => isSaving = true);
+                              if (!RegExp(r'^[6-9]\d{9}$').hasMatch(phoneController.text)) {
+                                setModalState(() => formError = 'Enter a valid 10-digit phone number');
+                                return;
+                              }
 
-                              final phoneDigits = phoneController.text
-                                  .replaceAll(RegExp(r'[^0-9]'), '');
-                              final phone10 = phoneDigits.length >= 10
-                                  ? phoneDigits.substring(phoneDigits.length - 10)
-                                  : phoneDigits.padLeft(10, '0');
+                              setModalState(() { isSaving = true; formError = null; });
+
+                              final phone10 = phoneController.text;
 
                               final line1 = [
                                 buildingController.text,
@@ -321,8 +337,9 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                                   state,
                                   pincode,
                                 ].where((v) => v.trim().isNotEmpty).join(', ');
-                                Navigator.pop(context, formatted); // close screen with result
+                                Navigator.pop(context, {'address': formatted, 'lat': capturedLat, 'lng': capturedLng}); // close screen with result
                               } catch (e) {
+                                debugPrint('ADD_ADDRESS_ERROR: $e');
                                 setModalState(() => isSaving = false);
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -369,11 +386,18 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     IconData icon, {
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
+  List<TextInputFormatter>? inputFormatters,
+  int? maxLength,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      inputFormatters: inputFormatters,
+      maxLength: maxLength,
+      buildCounter: maxLength != null
+          ? (context, {required currentLength, required isFocused, maxLength}) => null
+          : null,
       style: GoogleFonts.poppins(fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
@@ -489,7 +513,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.poppins(fontSize: 13)),
-                    onTap: () => Navigator.pop(context, s.displayName),
+                    onTap: () => Navigator.pop(context, {'address': s.displayName, 'lat': s.lat, 'lng': s.lng}),
                   );
                 }).toList(),
               ),
@@ -566,7 +590,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700])),
-                                onTap: () => Navigator.pop(context, _formatSavedAddress(a)),
+                                onTap: () => Navigator.pop(context, {'address': _formatSavedAddress(a), 'lat': (a['lat'] as num?)?.toDouble(), 'lng': (a['lng'] as num?)?.toDouble()}),
                               ),
                               if (!isLast) const Divider(height: 1, indent: 16, endIndent: 16),
                             ],
