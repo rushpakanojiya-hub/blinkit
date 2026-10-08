@@ -77,7 +77,7 @@ class ProductProvider extends ChangeNotifier {
       'name': name,
       'price': (raw['price'] is num) ? (raw['price'] as num).round() : 0,
       'mrp': (raw['mrp'] is num) ? (raw['mrp'] as num).round() : null,
-      'unit': (raw['description'] ?? '1 pc').toString(),
+      'unit': ((raw['weight'] ?? '').toString().trim().isEmpty ? '1 pc' : raw['weight'].toString().trim()),
       'category': categoryName,
       'image': image,
       'inStock': computedInStock,
