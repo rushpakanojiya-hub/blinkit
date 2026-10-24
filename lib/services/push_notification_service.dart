@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -29,8 +30,7 @@ class PushNotificationService {
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
 
-  static const AndroidNotificationChannel _channel =
-      AndroidNotificationChannel(
+  static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'order_updates',
     'Order updates',
     description: 'Order status, delivery and refund updates',
@@ -39,7 +39,12 @@ class PushNotificationService {
 
   static void handleTap(String? payload) {
     if (payload != null && payload.startsWith('file:')) {
-      SharePlus.instance.share(ShareParams(files: [XFile(payload.substring(5))], text: 'Invoice'));
+      final path = payload.substring(5);
+      if (File(path).existsSync()) {
+        SharePlus.instance.share(
+          ShareParams(files: [XFile(path)], text: 'Invoice'),
+        );
+      }
       return;
     }
     _openFromId(payload);
@@ -59,10 +64,14 @@ class PushNotificationService {
     if (nav == null || ctx == null) return;
     try {
       final order = await ctx.read<OrderProvider>().fetchDetails(orderId);
-      nav.push(MaterialPageRoute(builder: (_) => OrderStatusScreen(order: order)));
+      nav.push(
+        MaterialPageRoute(builder: (_) => OrderStatusScreen(order: order)),
+      );
     } catch (e) {
       debugPrint('open order failed: $e');
-      nav.push(MaterialPageRoute(builder: (_) => OrderDetailsScreen(orderId: orderId)));
+      nav.push(
+        MaterialPageRoute(builder: (_) => OrderDetailsScreen(orderId: orderId)),
+      );
     }
   }
 
@@ -74,7 +83,7 @@ class PushNotificationService {
 
   static Future<void> initialize() async {
     if (_initialized) return;
-    
+
     try {
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp();
@@ -87,7 +96,10 @@ class PushNotificationService {
         ),
         onDidReceiveNotificationResponse: (r) => handleTap(r.payload),
       );
-      final android = _local.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final android = _local
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       await android?.createNotificationChannel(_channel);
       await android?.requestNotificationsPermission();
 
@@ -102,13 +114,17 @@ class PushNotificationService {
 
       FirebaseMessaging.onMessage.listen(_onForeground);
       _initialized = true;
-      FirebaseMessaging.onMessageOpenedApp
-          .listen((m) => _openFromId(m.data['order_id']?.toString()));
+      FirebaseMessaging.onMessageOpenedApp.listen(
+        (m) => _openFromId(m.data['order_id']?.toString()),
+      );
 
       final initial = await messaging.getInitialMessage();
       if (initial != null) {
         final id = initial.data['order_id']?.toString();
-        Future.delayed(const Duration(milliseconds: 800), () => _openFromId(id));
+        Future.delayed(
+          const Duration(milliseconds: 800),
+          () => _openFromId(id),
+        );
       }
     } catch (e) {
       debugPrint('Push init failed: $e');
@@ -148,7 +164,7 @@ class PushNotificationService {
       n.title,
       n.body,
       const NotificationDetails(
-      iOS: DarwinNotificationDetails(),
+        iOS: DarwinNotificationDetails(),
         android: AndroidNotificationDetails(
           'order_updates',
           'Order updates',
@@ -168,7 +184,9 @@ class PushNotificationService {
             headers: headers,
             body: jsonEncode({
               'token': token,
-              'platform': (kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android')),
+              'platform': (kIsWeb
+                  ? 'web'
+                  : (Platform.isIOS ? 'ios' : 'android')),
             }),
           )
           .timeout(const Duration(seconds: 15));

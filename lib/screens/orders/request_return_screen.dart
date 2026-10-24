@@ -41,14 +41,20 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
   Future<void> _pickPhoto() async {
     if (_attachedPhotos.length >= _maxPhotos) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('You can attach up to $_maxPhotos photos', style: GoogleFonts.poppins())),
+        SnackBar(
+          content: Text(
+            'You can attach up to $_maxPhotos photos',
+            style: GoogleFonts.poppins(),
+          ),
+        ),
       );
       return;
     }
     final choice = await showModalBottomSheet<ImageSource>(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -80,7 +86,12 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not access camera/gallery', style: GoogleFonts.poppins())),
+          SnackBar(
+            content: Text(
+              'Could not access camera/gallery',
+              style: GoogleFonts.poppins(),
+            ),
+          ),
         );
       }
     }
@@ -93,7 +104,12 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
   Future<void> _submit() async {
     if (_selectedItemCount == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Select at least one item to return', style: GoogleFonts.poppins())),
+        SnackBar(
+          content: Text(
+            'Select at least one item to return',
+            style: GoogleFonts.poppins(),
+          ),
+        ),
       );
       return;
     }
@@ -106,8 +122,8 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
           .map((e) => {'order_item_id': e.key, 'quantity': e.value})
           .toList();
 
-      // Only one photo is currently supported by the backend - upload the
-      // first attached photo (if any) and send back its hosted URL.
+      // Upload every attached photo; imageUrl keeps the first one for older
+      // clients, imageUrls carries all of them.
       String? imageUrl;
       List<String>? imageUrls;
       if (_attachedPhotos.isNotEmpty) {
@@ -129,13 +145,23 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Return request submitted', style: GoogleFonts.poppins())),
+        SnackBar(
+          content: Text(
+            'Return request submitted',
+            style: GoogleFonts.poppins(),
+          ),
+        ),
       );
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''), style: GoogleFonts.poppins())),
+        SnackBar(
+          content: Text(
+            e.toString().replaceAll('Exception: ', ''),
+            style: GoogleFonts.poppins(),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -153,24 +179,46 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
         backgroundColor: scheme.surface,
         elevation: 0,
         iconTheme: IconThemeData(color: scheme.onSurface),
-        title: Text('Request Return',
-            style: GoogleFonts.poppins(color: scheme.onSurface, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Request Return',
+          style: GoogleFonts.poppins(
+            color: scheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text('Order #${order.id}',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: scheme.onSurface.withValues(alpha: 0.6))),
+            Text(
+              'Order #${order.id}',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
             const SizedBox(height: 16),
-            Text('Select items to return',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: scheme.onSurface)),
+            Text(
+              'Select items to return',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: scheme.onSurface,
+              ),
+            ),
             const SizedBox(height: 8),
             ...order.items.map((item) => _buildItemTile(item, scheme)),
             const SizedBox(height: 20),
-            Text('Reason for return',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: scheme.onSurface)),
+            Text(
+              'Reason for return',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: scheme.onSurface,
+              ),
+            ),
             const SizedBox(height: 8),
             CustomTextField(
               controller: _reasonController,
@@ -179,14 +227,27 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
               maxLines: 3,
               maxLength: 300,
               autoValidate: true,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Please tell us why you want to return this' : null,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Please tell us why you want to return this'
+                  : null,
             ),
             const SizedBox(height: 20),
-            Text('Add photos (optional)',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: scheme.onSurface)),
+            Text(
+              'Add photos (optional)',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: scheme.onSurface,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text('Attach up to $_maxPhotos photos to help us process your return faster',
-                style: GoogleFonts.poppins(fontSize: 12, color: scheme.onSurface.withValues(alpha: 0.6))),
+            Text(
+              'Attach up to $_maxPhotos photos to help us process your return faster',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: scheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
             const SizedBox(height: 10),
             _buildPhotoRow(scheme),
             const SizedBox(height: 28),
@@ -198,13 +259,26 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
                   backgroundColor: _kGreen,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 child: _submitting
                     ? const SizedBox(
-                        width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text('Submit Return Request',
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15)),
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'Submit Return Request',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 12),
@@ -239,8 +313,15 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
                   onTap: () => _removePhoto(i),
                   child: Container(
                     padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(color: Colors.black87, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, size: 14, color: Colors.white),
+                    decoration: const BoxDecoration(
+                      color: Colors.black87,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 14,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -254,9 +335,14 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
               height: 80,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: scheme.onSurface.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: scheme.onSurface.withValues(alpha: 0.2),
+                ),
               ),
-              child: Icon(Icons.add_a_photo_outlined, color: scheme.onSurface.withValues(alpha: 0.5)),
+              child: Icon(
+                Icons.add_a_photo_outlined,
+                color: scheme.onSurface.withValues(alpha: 0.5),
+              ),
             ),
           ),
       ],
@@ -273,7 +359,10 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isSelected ? _kGreen : Colors.transparent, width: 1.5),
+        border: Border.all(
+          color: isSelected ? _kGreen : Colors.transparent,
+          width: 1.5,
+        ),
       ),
       child: Row(
         children: [
@@ -290,10 +379,21 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.name,
-                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-                Text('Qty ordered: ${item.quantity} \u00b7 \u20b9${item.price} each',
-                    style: GoogleFonts.poppins(fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.6))),
+                Text(
+                  item.name,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                Text(
+                  'Qty ordered: ${item.quantity} \u00b7 \u20b9${item.price} each',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: scheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
               ],
             ),
           ),
@@ -301,14 +401,19 @@ class _RequestReturnScreenState extends State<RequestReturnScreen> {
             IconButton(
               icon: const Icon(Icons.remove_circle_outline),
               onPressed: selectedQty > 1
-                  ? () => setState(() => _selectedQty[item.id] = selectedQty - 1)
+                  ? () =>
+                        setState(() => _selectedQty[item.id] = selectedQty - 1)
                   : null,
             ),
-            Text('$selectedQty', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+            Text(
+              '$selectedQty',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
               onPressed: selectedQty < item.quantity
-                  ? () => setState(() => _selectedQty[item.id] = selectedQty + 1)
+                  ? () =>
+                        setState(() => _selectedQty[item.id] = selectedQty + 1)
                   : null,
             ),
           ],

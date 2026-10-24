@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
 import 'download_notification_service.dart';
+
 class InvoiceGenerator {
   /// Fetches the invoice PDF bytes for [order] from the backend
   /// (GET /orders/:id/invoice/pdf). Throws if the request fails or the
@@ -31,6 +32,7 @@ class InvoiceGenerator {
     }
     return response.bodyBytes;
   }
+
   /// Downloads the invoice PDF straight into the device's Downloads folder
   /// via MediaStore (file_saver) - no "Save As" picker dialog. No storage
   /// permission is needed on Android 10+ since MediaStore handles the
@@ -41,7 +43,8 @@ class InvoiceGenerator {
     required String customerName,
   }) async {
     final bytes = await fetchInvoicePdf(order);
-    final fileName = 'Invoice_Order${order.id}_${DateTime.now().millisecondsSinceEpoch}';
+    final fileName =
+        'Invoice_Order${order.id}_${DateTime.now().millisecondsSinceEpoch}';
     if (Platform.isAndroid || Platform.isIOS) {
       String savedPath;
       try {
@@ -64,7 +67,7 @@ class InvoiceGenerator {
       // instant native PDF preview inside the app.
       await DownloadNotificationService.showDownloadComplete(
         fileName: '$fileName.pdf',
-        filePath: savedPath,
+        filePath: (await _shareablePath(fileName, bytes)) ?? savedPath,
       );
       // After the notification, show the system "Open with" chooser.
       try {
@@ -80,5 +83,19 @@ class InvoiceGenerator {
       await Printing.sharePdf(bytes: bytes, filename: '$fileName.pdf');
       return true;
     }
+  }
+}
+
+/// BUG-33: savedPath from FileSaver can be a MediaStore URI that the app
+/// cannot re-read under scoped storage. Keep a private copy for the
+/// notification tap instead.
+Future<String?> _shareablePath(String fileName, List<int> bytes) async {
+  try {
+    final dir = await getApplicationSupportDirectory();
+    final f = File('${dir.path}/$fileName.pdf');
+    await f.writeAsBytes(bytes, flush: true);
+    return f.path;
+  } catch (_) {
+    return null;
   }
 }
