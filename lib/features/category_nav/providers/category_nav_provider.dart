@@ -8,7 +8,7 @@ import '../repositories/category_repository.dart';
 /// and closely related; split further if the module grows.
 class CategoryNavProvider extends ChangeNotifier {
   CategoryNavProvider({CategoryRepository? repository})
-      : _repo = repository ?? CategoryRepository();
+    : _repo = repository ?? CategoryRepository();
 
   final CategoryRepository _repo;
 
@@ -53,6 +53,9 @@ class CategoryNavProvider extends ChangeNotifier {
   Future<void> openCategory(CategoryModel category) async {
     _activeCategory = category;
     _activeSubCategory = null;
+    // BUG-18: don't flash the previous category's chips/products
+    _subCategories = [];
+    _products = [];
     _query = '';
     _sort = SortOption.relevance;
     _inStockOnly = false;
