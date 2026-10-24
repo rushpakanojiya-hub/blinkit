@@ -26,13 +26,24 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
   static const _pageSize = 8;
   int _visibleCount = _pageSize;
   String? _filterSig;
+  bool _reopenScheduled = false;
 
   @override
   void initState() {
     super.initState();
+    _reopenScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CategoryNavProvider>().openCategory(widget.category);
+      _reopen();
     });
+  }
+
+  // BUG-18: provider is a singleton, so another category screen may have
+  // overwritten its state. Reload this screen's category when needed.
+  void _reopen() {
+    _reopenScheduled = false;
+    if (!mounted) return;
+    setState(() => _visibleCount = _pageSize);
+    context.read<CategoryNavProvider>().openCategory(widget.category);
   }
 
   String _cartImageUrl(dynamic item) {
@@ -115,6 +126,13 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CategoryNavProvider>();
+    // BUG-18: back on top but provider holds another category -> reload ours
+    if (!_reopenScheduled &&
+        (ModalRoute.of(context)?.isCurrent ?? false) &&
+        provider.activeCategory?.id != widget.category.id) {
+      _reopenScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _reopen());
+    }
     final category = widget.category;
     // BUG-19: restart pagination when search, sort or stock filter changes
     final filterSig =
