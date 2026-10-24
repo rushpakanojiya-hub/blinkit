@@ -593,6 +593,36 @@ class ApiService {
     return _safeDecode(response.body);
   }
 
+  static Future<Map<String, dynamic>> getMe() async {
+    final headers = await getHeaders();
+    final response = await http
+        .get(Uri.parse('$baseUrl/auth/me'), headers: headers)
+        .timeout(_timeout);
+    final data = _safeDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw Exception((data['error'] ?? 'Failed to load profile').toString());
+    }
+    return data;
+  }
+
+  static Future<Map<String, dynamic>> updateMe(
+    Map<String, dynamic> body,
+  ) async {
+    final headers = await getHeaders();
+    final response = await http
+        .put(
+          Uri.parse('$baseUrl/auth/me'),
+          headers: headers,
+          body: jsonEncode(body),
+        )
+        .timeout(_timeout);
+    final data = _safeDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw Exception((data['error'] ?? 'Failed to update profile').toString());
+    }
+    return data;
+  }
+
   static Future<Map<String, dynamic>> getOrder(int orderId) async {
     final headers = await getHeaders();
     final response = await http
