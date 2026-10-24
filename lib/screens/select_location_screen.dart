@@ -1,3 +1,4 @@
+import '../utils/city_line_parser.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -84,7 +85,11 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
       // Triggers the native location permission prompt if not yet granted.
       final result = await LocationService.getCurrentLocation();
       if (mounted) {
-        Navigator.pop(context, {'address': result.displayAddress, 'lat': result.latitude, 'lng': result.longitude});
+        Navigator.pop(context, {
+          'address': result.displayAddress,
+          'lat': result.latitude,
+          'lng': result.longitude,
+        });
       }
     } catch (e) {
       setState(() {
@@ -95,12 +100,10 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
   }
 
   String _formatSavedAddress(Map<String, dynamic> a) {
-    final parts = [
-      a['line1'],
-      a['city'],
-      a['state'],
-      a['pincode'],
-    ].where((v) => v != null && v.toString().trim().isNotEmpty).map((v) => v.toString()).toList();
+    final parts = [a['line1'], a['city'], a['state'], a['pincode']]
+        .where((v) => v != null && v.toString().trim().isNotEmpty)
+        .map((v) => v.toString())
+        .toList();
     return parts.isNotEmpty ? parts.join(', ') : 'Saved address';
   }
 
@@ -134,13 +137,17 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (_) => StatefulBuilder(
         builder: (context, setModalState) {
           return Padding(
             padding: EdgeInsets.only(
-                left: 20, right: 20, top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            ),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,14 +158,19 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2)),
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text('Add New Address',
-                      style: GoogleFonts.poppins(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    'Add New Address',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     children: ['Home', 'Office', 'Other'].map((type) {
@@ -168,31 +180,47 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                         child: Container(
                           margin: const EdgeInsets.only(right: 10),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
-                            color: isSelected ? _primaryGreen : Colors.grey[100],
+                            color: isSelected
+                                ? _primaryGreen
+                                : Colors.grey[100],
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(type,
-                              style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  color: isSelected ? Colors.white : Colors.grey,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal)),
+                          child: Text(
+                            type,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: isSelected ? Colors.white : Colors.grey,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
-                  _buildTextField(buildingController, 'Building & Block No. (Optional)',
-                      Icons.home_outlined),
+                  _buildTextField(
+                    buildingController,
+                    'Building & Block No. (Optional)',
+                    Icons.home_outlined,
+                  ),
                   const SizedBox(height: 12),
-                  _buildTextField(addressController, 'House No. & Floor',
-                      Icons.apartment_outlined),
+                  _buildTextField(
+                    addressController,
+                    'House No. & Floor',
+                    Icons.apartment_outlined,
+                  ),
                   const SizedBox(height: 12),
-                  _buildTextField(cityController, 'City, State, Pincode',
-                      Icons.location_city_outlined),
+                  _buildTextField(
+                    cityController,
+                    'City, State, Pincode',
+                    Icons.location_city_outlined,
+                  ),
                   const SizedBox(height: 12),
                   Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -225,7 +253,10 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                           }
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade300),
                             borderRadius: BorderRadius.circular(20),
@@ -233,50 +264,86 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.map_outlined, size: 14, color: _primaryGreen),
+                              const Icon(
+                                Icons.map_outlined,
+                                size: 14,
+                                color: _primaryGreen,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 'Select on map',
-                                style: GoogleFonts.poppins(fontSize: 12, color: _primaryGreen),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: _primaryGreen,
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
                       if (capturedLat != null && capturedLng != null)
-                        Text('Location captured',
-                            style: GoogleFonts.poppins(fontSize: 11, color: Colors.green)),
+                        Text(
+                          'Location captured',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: Colors.green,
+                          ),
+                        ),
                     ],
                   ),
                   if (locationErrorModal != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(locationErrorModal!,
-                          style: GoogleFonts.poppins(fontSize: 11, color: Colors.red)),
+                      child: Text(
+                        locationErrorModal!,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.red,
+                        ),
+                      ),
                     ),
                   const SizedBox(height: 20),
-                  Text('Receiver details',
-                      style: GoogleFonts.poppins(
-                          fontSize: 15, fontWeight: FontWeight.bold)),
+                  Text(
+                    'Receiver details',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 12),
-                  _buildTextField(nameController, "Receiver's Name", Icons.person_outline),
+                  _buildTextField(
+                    nameController,
+                    "Receiver's Name",
+                    Icons.person_outline,
+                  ),
                   const SizedBox(height: 12),
-                  _buildTextField(phoneController, "Receiver's Phone Number",
-                      Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      maxLength: 10),
+                  _buildTextField(
+                    phoneController,
+                    "Receiver's Phone Number",
+                    Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    maxLength: 10,
+                  ),
                   if (formError != null) ...[
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       margin: const EdgeInsets.only(top: 12),
                       decoration: BoxDecoration(
                         color: Colors.red,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(formError!,
-                          style: GoogleFonts.poppins(color: Colors.white, fontSize: 13)),
+                      child: Text(
+                        formError!,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
                   ],
                   const SizedBox(height: 24),
@@ -288,16 +355,36 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                           : () async {
                               if (nameController.text.isEmpty ||
                                   addressController.text.isEmpty) {
-                                setModalState(() => formError = 'Please fill all fields');
+                                setModalState(
+                                  () => formError = 'Please fill all fields',
+                                );
                                 return;
                               }
 
-                              if (!RegExp(r'^[6-9]\d{9}$').hasMatch(phoneController.text)) {
-                                setModalState(() => formError = 'Enter a valid 10-digit phone number');
+                              if (!RegExp(
+                                r'^[6-9]\d{9}$',
+                              ).hasMatch(phoneController.text)) {
+                                setModalState(
+                                  () => formError =
+                                      'Enter a valid 10-digit phone number',
+                                );
                                 return;
                               }
 
-                              setModalState(() { isSaving = true; formError = null; });
+                              if (!RegExp(
+                                r'(?<!\d)\d{6}(?!\d)',
+                              ).hasMatch(cityController.text)) {
+                                setModalState(
+                                  () => formError =
+                                      'Add a 6-digit pincode, e.g. Mumbai, Maharashtra, 400001',
+                                );
+                                return;
+                              }
+
+                              setModalState(() {
+                                isSaving = true;
+                                formError = null;
+                              });
 
                               final phone10 = phoneController.text;
 
@@ -306,13 +393,10 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                               ].where((v) => v.trim().isNotEmpty).join(', ');
 
                               final cityRaw = cityController.text;
-                              final parts = cityRaw.split(',');
-                              final city = parts.isNotEmpty ? parts[0].trim() : cityRaw;
-                              final state = parts.length > 1
-                                  ? parts[1].replaceAll(RegExp(r'[0-9]'), '').trim()
-                                  : '';
-                              final pinMatch = RegExp(r'(\d{6})').firstMatch(cityRaw);
-                              final pincode = pinMatch != null ? pinMatch.group(1)! : '000000';
+                              final parsed = parseCityLine(cityRaw);
+                              final city = parsed.city;
+                              final state = parsed.state;
+                              final pincode = parsed.pincode;
 
                               try {
                                 await ApiService.createAddress({
@@ -337,17 +421,25 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                                   state,
                                   pincode,
                                 ].where((v) => v.trim().isNotEmpty).join(', ');
-                                Navigator.pop(context, {'address': formatted, 'lat': capturedLat, 'lng': capturedLng}); // close screen with result
+                                Navigator.pop(context, {
+                                  'address': formatted,
+                                  'lat': capturedLat,
+                                  'lng': capturedLng,
+                                }); // close screen with result
                               } catch (e) {
                                 debugPrint('ADD_ADDRESS_ERROR: $e');
                                 setModalState(() => isSaving = false);
                                 if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                    content: Text('Could not save address',
-                                        style: GoogleFonts.poppins()),
-                                    backgroundColor: Colors.red,
-                                    behavior: SnackBarBehavior.floating,
-                                  ));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Could not save address',
+                                        style: GoogleFonts.poppins(),
+                                      ),
+                                      backgroundColor: Colors.red,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
                                 }
                               }
                             },
@@ -355,20 +447,26 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                         backgroundColor: _primaryGreen,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       child: isSaving
                           ? const SizedBox(
                               height: 18,
                               width: 18,
                               child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
-                          : Text('Save Address',
+                          : Text(
+                              'Save Address',
                               style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold)),
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -386,8 +484,8 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     IconData icon, {
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
-  List<TextInputFormatter>? inputFormatters,
-  int? maxLength,
+    List<TextInputFormatter>? inputFormatters,
+    int? maxLength,
   }) {
     return TextField(
       controller: controller,
@@ -396,7 +494,12 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
       inputFormatters: inputFormatters,
       maxLength: maxLength,
       buildCounter: maxLength != null
-          ? (context, {required currentLength, required isFocused, maxLength}) => null
+          ? (
+              context, {
+              required currentLength,
+              required isFocused,
+              maxLength,
+            }) => null
           : null,
       style: GoogleFonts.poppins(fontSize: 14),
       decoration: InputDecoration(
@@ -415,7 +518,10 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -435,9 +541,14 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
             Icon(icon, color: _primaryGreen, size: 22),
             const SizedBox(width: 16),
             Expanded(
-              child: Text(label,
-                  style: GoogleFonts.poppins(
-                      fontSize: 15, fontWeight: FontWeight.w600, color: _primaryGreen)),
+              child: Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: _primaryGreen,
+                ),
+              ),
             ),
             if (trailing != null) trailing,
           ],
@@ -455,9 +566,14 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
         elevation: 0,
         foregroundColor: Theme.of(context).colorScheme.onSurface,
         titleSpacing: 0,
-        title: Text('Select Location',
-            style: GoogleFonts.poppins(
-                fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+        title: Text(
+          'Select Location',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
       ),
       body: ListView(
         padding: EdgeInsets.zero,
@@ -471,7 +587,10 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
               style: GoogleFonts.poppins(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Search Address',
-                hintStyle: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
+                hintStyle: GoogleFonts.poppins(
+                  color: Colors.grey,
+                  fontSize: 14,
+                ),
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 suffixIcon: _isSearching
                     ? const Padding(
@@ -495,7 +614,10 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _primaryGreen, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: _primaryGreen,
+                    width: 1.5,
+                  ),
                 ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 14),
               ),
@@ -508,12 +630,21 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
               child: Column(
                 children: _suggestions.map((s) {
                   return ListTile(
-                    leading: const Icon(Icons.location_on_outlined, color: _primaryGreen),
-                    title: Text(s.displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(fontSize: 13)),
-                    onTap: () => Navigator.pop(context, {'address': s.displayName, 'lat': s.lat, 'lng': s.lng}),
+                    leading: const Icon(
+                      Icons.location_on_outlined,
+                      color: _primaryGreen,
+                    ),
+                    title: Text(
+                      s.displayName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(fontSize: 13),
+                    ),
+                    onTap: () => Navigator.pop(context, {
+                      'address': s.displayName,
+                      'lat': s.lat,
+                      'lng': s.lng,
+                    }),
                   );
                 }).toList(),
               ),
@@ -527,21 +658,35 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
               children: [
                 _buildActionTile(
                   icon: Icons.my_location,
-                  label: _isLocating ? 'Locating...' : 'Use my Current Location',
+                  label: _isLocating
+                      ? 'Locating...'
+                      : 'Use my Current Location',
                   onTap: _isLocating ? null : _useCurrentLocation,
                   trailing: _isLocating
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: _primaryGreen),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: _primaryGreen,
+                          ),
                         )
                       : null,
                 ),
                 if (_locateError != null)
                   Padding(
-                    padding: const EdgeInsets.only(left: 54, right: 16, bottom: 12),
-                    child: Text(_locateError!,
-                        style: GoogleFonts.poppins(fontSize: 11, color: Colors.red)),
+                    padding: const EdgeInsets.only(
+                      left: 54,
+                      right: 16,
+                      bottom: 12,
+                    ),
+                    child: Text(
+                      _locateError!,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.red,
+                      ),
+                    ),
                   ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 _buildActionTile(
@@ -558,8 +703,13 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
 
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text('Saved Addresses',
-                style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold)),
+            child: Text(
+              'Saved Addresses',
+              style: GoogleFonts.poppins(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
 
           Container(
@@ -570,33 +720,55 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 : _savedAddresses.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Text('No saved addresses yet',
-                            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey)),
-                      )
-                    : Column(
-                        children: _savedAddresses.asMap().entries.map((entry) {
-                          final a = entry.value;
-                          final isLast = entry.key == _savedAddresses.length - 1;
-                          return Column(
-                            children: [
-                              ListTile(
-                                leading: Icon(_iconForLabel(a['label']), color: Theme.of(context).colorScheme.onSurface),
-                                title: Text(a['label'] ?? 'Address',
-                                    style: GoogleFonts.poppins(
-                                        fontSize: 14, fontWeight: FontWeight.bold)),
-                                subtitle: Text(_formatSavedAddress(a),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[700])),
-                                onTap: () => Navigator.pop(context, {'address': _formatSavedAddress(a), 'lat': (a['lat'] as num?)?.toDouble(), 'lng': (a['lng'] as num?)?.toDouble()}),
-                              ),
-                              if (!isLast) const Divider(height: 1, indent: 16, endIndent: 16),
-                            ],
-                          );
-                        }).toList(),
+                ? Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      'No saved addresses yet',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.grey,
                       ),
+                    ),
+                  )
+                : Column(
+                    children: _savedAddresses.asMap().entries.map((entry) {
+                      final a = entry.value;
+                      final isLast = entry.key == _savedAddresses.length - 1;
+                      return Column(
+                        children: [
+                          ListTile(
+                            leading: Icon(
+                              _iconForLabel(a['label']),
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            title: Text(
+                              a['label'] ?? 'Address',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              _formatSavedAddress(a),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            onTap: () => Navigator.pop(context, {
+                              'address': _formatSavedAddress(a),
+                              'lat': (a['lat'] as num?)?.toDouble(),
+                              'lng': (a['lng'] as num?)?.toDouble(),
+                            }),
+                          ),
+                          if (!isLast)
+                            const Divider(height: 1, indent: 16, endIndent: 16),
+                        ],
+                      );
+                    }).toList(),
+                  ),
           ),
         ],
       ),

@@ -1,3 +1,4 @@
+import '../utils/city_line_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -94,9 +95,11 @@ class _AddressScreenState extends State<AddressScreen> {
       setState(() {
         _addresses = backendAddresses.map<Map<String, dynamic>>((a) {
           final map = Map<String, dynamic>.from(a);
-          final cityLine = [map['city'], map['state'], map['pincode']]
-              .where((v) => v != null && v.toString().isNotEmpty)
-              .join(', ');
+          final cityLine = [
+            map['city'],
+            map['state'],
+            map['pincode'],
+          ].where((v) => v != null && v.toString().isNotEmpty).join(', ');
           return {
             'type': map['label'] ?? 'Home',
             'icon': _iconFromType(map['label'] ?? 'Home'),
@@ -141,9 +144,12 @@ class _AddressScreenState extends State<AddressScreen> {
 
   IconData _iconFromType(String type) {
     switch (type) {
-      case 'Home': return Icons.home_outlined;
-      case 'Office': return Icons.work_outline;
-      default: return Icons.location_on_outlined;
+      case 'Home':
+        return Icons.home_outlined;
+      case 'Office':
+        return Icons.work_outline;
+      default:
+        return Icons.location_on_outlined;
     }
   }
 
@@ -166,22 +172,22 @@ class _AddressScreenState extends State<AddressScreen> {
     return f;
   }
 
+  bool _savingAddress = false;
+
   Future<int?> _doSyncAddress(Map<String, dynamic> addr, bool isDefault) async {
-    
-    final phoneDigits =
-        (addr['phone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
+    final phoneDigits = (addr['phone'] ?? '').toString().replaceAll(
+      RegExp(r'[^0-9]'),
+      '',
+    );
     final phone10 = phoneDigits.length >= 10
         ? phoneDigits.substring(phoneDigits.length - 10)
         : phoneDigits.padLeft(10, '0');
 
     final cityRaw = (addr['city'] ?? '').toString();
-    final parts = cityRaw.split(',');
-    String city = parts.isNotEmpty ? parts[0].trim() : cityRaw;
-    String state = parts.length > 1
-        ? parts[1].replaceAll(RegExp(r'[0-9]'), '').trim()
-        : '';
-    final pinMatch = RegExp(r'(\d{6})').firstMatch(cityRaw);
-    String pincode = pinMatch != null ? pinMatch.group(1)! : '000000';
+    final parsed = parseCityLine(cityRaw);
+    final city = parsed.city;
+    final state = parsed.state;
+    final pincode = parsed.pincode;
 
     try {
       final payload = {
@@ -199,7 +205,10 @@ class _AddressScreenState extends State<AddressScreen> {
       };
       final existingBackendId = addr['backend_id'];
       final result = existingBackendId != null
-          ? await ApiService.updateAddress(existingBackendId.toString(), payload)
+          ? await ApiService.updateAddress(
+              existingBackendId.toString(),
+              payload,
+            )
           : await ApiService.createAddress(payload);
       final id = result['id'] ?? existingBackendId;
       if (id != null) {
@@ -233,47 +242,64 @@ class _AddressScreenState extends State<AddressScreen> {
       if (!mounted) return;
       await context.read<CartProvider>().loadCart();
       if (!mounted) return;
-      await context.read<OrderProvider>().loadOrders(OrderStatus.active, refresh: true);
+      await context.read<OrderProvider>().loadOrders(
+        OrderStatus.active,
+        refresh: true,
+      );
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const OrderScreen()),
       );
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Payment Successful! Order Placed \u{1F389}',
-            style: GoogleFonts.poppins()),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Payment Successful! Order Placed \u{1F389}',
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (e) {
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error: $e', style: GoogleFonts.poppins()),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e', style: GoogleFonts.poppins()),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Payment Failed: ${response.message}',
-          style: GoogleFonts.poppins()),
-      backgroundColor: Colors.red,
-      behavior: SnackBarBehavior.floating,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Payment Failed: ${response.message}',
+          style: GoogleFonts.poppins(),
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('External Wallet: ${response.walletName}',
-          style: GoogleFonts.poppins()),
-      backgroundColor: Colors.blue,
-      behavior: SnackBarBehavior.floating,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'External Wallet: ${response.walletName}',
+          style: GoogleFonts.poppins(),
+        ),
+        backgroundColor: Colors.blue,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   // Places the order with the currently selected address + payment method.
@@ -353,18 +379,25 @@ class _AddressScreenState extends State<AddressScreen> {
         if (!mounted) return;
         await context.read<CartProvider>().loadCart();
         if (!mounted) return;
-        await context.read<OrderProvider>().loadOrders(OrderStatus.active, refresh: true);
+        await context.read<OrderProvider>().loadOrders(
+          OrderStatus.active,
+          refresh: true,
+        );
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const OrderScreen()),
         );
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Order Placed! Pay on delivery \u{1F4E6}',
-              style: GoogleFonts.poppins()),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Order Placed! Pay on delivery \u{1F4E6}',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
         setState(() => _isLoading = false);
         return;
       }
@@ -377,41 +410,48 @@ class _AddressScreenState extends State<AddressScreen> {
         'name': 'Mepto',
         'order_id': orderData['razorpay_order_id'],
         'description': 'Grocery Order',
-        'prefill': {
-          'contact': '9999999999',
-          'email': 'test@mepto.com',
+        'prefill': {'contact': '9999999999', 'email': 'test@mepto.com'},
+        'method': {
+          'upi': true,
+          'card': true,
+          'netbanking': true,
+          'wallet': true,
         },
-        'method': {'upi': true, 'card': true, 'netbanking': true, 'wallet': true},
         'theme': {'color': '#D4A574'},
       };
       _razorpay.open(options);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Icon(Icons.shopping_bag_outlined, color: Color(0xFFF5C518), size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  e.toString().replaceFirst('Exception: ', ''),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13,
+          SnackBar(
+            content: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.shopping_bag_outlined,
+                  color: Color(0xFFF5C518),
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    e.toString().replaceFirst('Exception: ', ''),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            backgroundColor: const Color(0xFF2D2D2D),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.only(left: 16, right: 16, bottom: 80),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            duration: const Duration(seconds: 3),
           ),
-          backgroundColor: const Color(0xFF2D2D2D),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.only(left: 16, right: 16, bottom: 80),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          duration: const Duration(seconds: 3),
-        ));
+        );
       }
     }
     setState(() => _isLoading = false);
@@ -424,10 +464,7 @@ class _AddressScreenState extends State<AddressScreen> {
       'name': 'Mepto',
       'order_id': orderData['razorpay_order_id'],
       'description': 'Grocery Order',
-      'prefill': {
-        'contact': '9999999999',
-        'email': 'test@mepto.com',
-      },
+      'prefill': {'contact': '9999999999', 'email': 'test@mepto.com'},
       'method': {'upi': true, 'card': true, 'netbanking': true, 'wallet': true},
       'theme': {'color': '#D4A574'},
     };
@@ -438,10 +475,16 @@ class _AddressScreenState extends State<AddressScreen> {
     final existing = editIndex != null ? _addresses[editIndex] : null;
 
     final nameController = TextEditingController(text: existing?['name'] ?? '');
-    final addressController = TextEditingController(text: existing?['address'] ?? '');
+    final addressController = TextEditingController(
+      text: existing?['address'] ?? '',
+    );
     final cityController = TextEditingController(text: existing?['city'] ?? '');
-    final phoneController = TextEditingController(text: existing?['phone'] ?? '');
-    final buildingController = TextEditingController(text: existing?['building'] ?? '');
+    final phoneController = TextEditingController(
+      text: existing?['phone'] ?? '',
+    );
+    final buildingController = TextEditingController(
+      text: existing?['building'] ?? '',
+    );
     String selectedType = existing?['type'] ?? 'Home';
     double? capturedLat = (existing?['lat'] as num?)?.toDouble();
     double? capturedLng = (existing?['lng'] as num?)?.toDouble();
@@ -453,13 +496,17 @@ class _AddressScreenState extends State<AddressScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (_) => StatefulBuilder(
         builder: (context, setModalState) {
           return Padding(
             padding: EdgeInsets.only(
-                left: 20, right: 20, top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            ),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,16 +514,22 @@ class _AddressScreenState extends State<AddressScreen> {
                 children: [
                   Center(
                     child: Container(
-                      width: 40, height: 4,
+                      width: 40,
+                      height: 4,
                       decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2)),
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(editIndex != null ? 'Edit Address' : 'Add New Address',
-                      style: GoogleFonts.poppins(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    editIndex != null ? 'Edit Address' : 'Add New Address',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 16),
 
                   Row(
@@ -487,34 +540,48 @@ class _AddressScreenState extends State<AddressScreen> {
                         child: Container(
                           margin: const EdgeInsets.only(right: 10),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? const Color(0xFF0C831F)
                                 : Colors.grey[100],
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(type,
-                              style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  color: isSelected ? Colors.white : Colors.grey,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal)),
+                          child: Text(
+                            type,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: isSelected ? Colors.white : Colors.grey,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
 
-                  _buildTextField(buildingController, 'Building & Block No. (Optional)',
-                      Icons.home_outlined),
+                  _buildTextField(
+                    buildingController,
+                    'Building & Block No. (Optional)',
+                    Icons.home_outlined,
+                  ),
                   const SizedBox(height: 12),
-                  _buildTextField(addressController, 'House No. & Floor',
-                      Icons.apartment_outlined),
+                  _buildTextField(
+                    addressController,
+                    'House No. & Floor',
+                    Icons.apartment_outlined,
+                  ),
                   const SizedBox(height: 12),
-                  _buildTextField(cityController, 'City, State, Pincode',
-                      Icons.location_city_outlined),
+                  _buildTextField(
+                    cityController,
+                    'City, State, Pincode',
+                    Icons.location_city_outlined,
+                  ),
                   const SizedBox(height: 12),
                   Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -547,7 +614,10 @@ class _AddressScreenState extends State<AddressScreen> {
                           }
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade300),
                             borderRadius: BorderRadius.circular(20),
@@ -555,50 +625,86 @@ class _AddressScreenState extends State<AddressScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.map_outlined, size: 14, color: Color(0xFF0C831F)),
+                              const Icon(
+                                Icons.map_outlined,
+                                size: 14,
+                                color: Color(0xFF0C831F),
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 'Select on map',
-                                style: GoogleFonts.poppins(fontSize: 12, color: const Color(0xFF0C831F)),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: const Color(0xFF0C831F),
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
                       if (capturedLat != null && capturedLng != null)
-                        Text('Location captured',
-                            style: GoogleFonts.poppins(fontSize: 11, color: Colors.green)),
+                        Text(
+                          'Location captured',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: Colors.green,
+                          ),
+                        ),
                     ],
                   ),
                   if (locationErrorModal != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(locationErrorModal!,
-                          style: GoogleFonts.poppins(fontSize: 11, color: Colors.red)),
+                      child: Text(
+                        locationErrorModal!,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.red,
+                        ),
+                      ),
                     ),
                   const SizedBox(height: 20),
-                  Text('Receiver details',
-                      style: GoogleFonts.poppins(
-                          fontSize: 15, fontWeight: FontWeight.bold)),
+                  Text(
+                    'Receiver details',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 12),
-                  _buildTextField(nameController, "Receiver's Name", Icons.person_outline),
+                  _buildTextField(
+                    nameController,
+                    "Receiver's Name",
+                    Icons.person_outline,
+                  ),
                   const SizedBox(height: 12),
-                  _buildTextField(phoneController, "Receiver's Phone Number",
-                      Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      maxLength: 10),
+                  _buildTextField(
+                    phoneController,
+                    "Receiver's Phone Number",
+                    Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    maxLength: 10,
+                  ),
                   if (formError != null) ...[
                     const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.red,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(formError!,
-                          style: GoogleFonts.poppins(color: Colors.white, fontSize: 13)),
+                      child: Text(
+                        formError!,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
                   ],
                   const SizedBox(height: 24),
@@ -606,14 +712,32 @@ class _AddressScreenState extends State<AddressScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () async {
+                        if (_savingAddress) return;
                         if (nameController.text.isEmpty ||
                             addressController.text.isEmpty) {
-                          setModalState(() => formError = 'Please fill all fields');
+                          setModalState(
+                            () => formError = 'Please fill all fields',
+                          );
                           return;
                         }
 
-                        if (!RegExp(r'^[6-9]\d{9}$').hasMatch(phoneController.text)) {
-                          setModalState(() => formError = 'Enter a valid 10-digit phone number');
+                        if (!RegExp(
+                          r'^[6-9]\d{9}$',
+                        ).hasMatch(phoneController.text)) {
+                          setModalState(
+                            () => formError =
+                                'Enter a valid 10-digit phone number',
+                          );
+                          return;
+                        }
+
+                        if (!RegExp(
+                          r'(?<!\d)\d{6}(?!\d)',
+                        ).hasMatch(cityController.text)) {
+                          setModalState(
+                            () => formError =
+                                'Add a 6-digit pincode, e.g. Mumbai, Maharashtra, 400001',
+                          );
                           return;
                         }
 
@@ -624,18 +748,27 @@ class _AddressScreenState extends State<AddressScreen> {
                             cityController.text.trim(),
                           ].where((s) => s.isNotEmpty).join(', ');
                           var results = await NominatimService.search(query);
-                          debugPrint('GEOCODE: query=$query results=${results.length}');
-                          if (results.isEmpty && cityController.text.trim().isNotEmpty) {
+                          debugPrint(
+                            'GEOCODE: query=$query results=${results.length}',
+                          );
+                          if (results.isEmpty &&
+                              cityController.text.trim().isNotEmpty) {
                             final cityQuery = cityController.text.trim();
                             results = await NominatimService.search(cityQuery);
-                            debugPrint('GEOCODE_FALLBACK_CITY: query=$cityQuery results=${results.length}');
+                            debugPrint(
+                              'GEOCODE_FALLBACK_CITY: query=$cityQuery results=${results.length}',
+                            );
                           }
                           if (results.isEmpty) {
-                            final pinMatch = RegExp(r'(\d{6})').firstMatch(cityController.text);
+                            final pinMatch = RegExp(
+                              r'(\d{6})',
+                            ).firstMatch(cityController.text);
                             if (pinMatch != null) {
                               final pinQuery = pinMatch.group(1)!;
                               results = await NominatimService.search(pinQuery);
-                              debugPrint('GEOCODE_FALLBACK_PIN: query=$pinQuery results=${results.length}');
+                              debugPrint(
+                                'GEOCODE_FALLBACK_PIN: query=$pinQuery results=${results.length}',
+                              );
                             }
                           }
                           if (results.isNotEmpty) {
@@ -669,33 +802,50 @@ class _AddressScreenState extends State<AddressScreen> {
                         });
 
                         _saveAddresses();
-                        final syncIndex =
-                            editIndex ?? _addresses.length - 1;
-                        _syncAddressToBackend(syncIndex);
+                        final syncIndex = editIndex ?? _addresses.length - 1;
+                        _savingAddress = true;
+                        int? syncedId;
+                        try {
+                          syncedId = await _syncAddressToBackend(syncIndex);
+                        } finally {
+                          _savingAddress = false;
+                        }
+                        if (!mounted) return;
+                        final syncOk = syncedId != null;
                         Navigator.pop(context);
 
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(
-                              editIndex != null
-                                  ? 'Address updated! \u2705'
-                                  : 'Address saved! \u2705',
-                              style: GoogleFonts.poppins()),
-                          backgroundColor: Colors.green,
-                          behavior: SnackBarBehavior.floating,
-                        ));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              !syncOk
+                                  ? 'Saved on this device, but the server could not save it. Edit it and check phone and pincode.'
+                                  : (editIndex != null
+                                        ? 'Address updated! \u2705'
+                                        : 'Address saved! \u2705'),
+                              style: GoogleFonts.poppins(),
+                            ),
+                            backgroundColor: syncOk
+                                ? Colors.green
+                                : Colors.orange,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0C831F),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       child: Text(
-                          editIndex != null ? 'Update Address' : 'Save Address',
-                          style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold)),
+                        editIndex != null ? 'Update Address' : 'Save Address',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -708,12 +858,14 @@ class _AddressScreenState extends State<AddressScreen> {
   }
 
   Widget _buildTextField(
-      TextEditingController controller, String hint, IconData icon, {
-        TextInputType keyboardType = TextInputType.text,
-        int maxLines = 1,
-      List<TextInputFormatter>? inputFormatters,
-      int? maxLength,
-      }) {
+    TextEditingController controller,
+    String hint,
+    IconData icon, {
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    List<TextInputFormatter>? inputFormatters,
+    int? maxLength,
+  }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
@@ -721,7 +873,12 @@ class _AddressScreenState extends State<AddressScreen> {
       inputFormatters: inputFormatters,
       maxLength: maxLength,
       buildCounter: maxLength != null
-          ? (context, {required currentLength, required isFocused, maxLength}) => null
+          ? (
+              context, {
+              required currentLength,
+              required isFocused,
+              maxLength,
+            }) => null
           : null,
       style: GoogleFonts.poppins(fontSize: 14),
       decoration: InputDecoration(
@@ -740,7 +897,10 @@ class _AddressScreenState extends State<AddressScreen> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -753,15 +913,19 @@ class _AddressScreenState extends State<AddressScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withValues(alpha: 0.08), blurRadius: 8)
+          BoxShadow(color: Colors.grey.withValues(alpha: 0.08), blurRadius: 8),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Payment Method',
-              style: GoogleFonts.poppins(
-                  fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(
+            'Payment Method',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 12),
           _buildPaymentOption(
             value: 'online',
@@ -804,20 +968,30 @@ class _AddressScreenState extends State<AddressScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon,
-                color: isSelected ? const Color(0xFF0C831F) : Colors.grey,
-                size: 22),
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFF0C831F) : Colors.grey,
+              size: 22,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: GoogleFonts.poppins(
-                          fontSize: 13, fontWeight: FontWeight.w600)),
-                  Text(subtitle,
-                      style: GoogleFonts.poppins(
-                          fontSize: 11, color: Colors.grey)),
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -838,171 +1012,243 @@ class _AddressScreenState extends State<AddressScreen> {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: const Color(0xFF0C831F),
-        title: Text('Select Delivery Address',
-            style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Select Delivery Address',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddressSheet(),
         backgroundColor: const Color(0xFF0C831F),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: Text('Add Address',
-            style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.bold)),
+        label: Text(
+          'Add Address',
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: _addresses.isEmpty
           ? Center(
-        child: Text('No addresses saved',
-            style: GoogleFonts.poppins(color: Colors.grey)),
-      )
-          : ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        itemCount: _addresses.length + 1,
-        itemBuilder: (context, index) {
-          if (index == _addresses.length) {
-            return _buildPaymentMethodPicker();
-          }
-          final address = _addresses[index];
-          final isSelected = _selectedAddress == index;
-          return GestureDetector(
-            onTap: () => setState(() {
-              _selectedAddress = index;
-              final lat = (_addresses[index]['lat'] as num?)?.toDouble();
-              final lng = (_addresses[index]['lng'] as num?)?.toDouble();
-              CategoryRepository.updateLocation(lat, lng);
-            }),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF0C831F)
-                        : Colors.transparent,
-                    width: 2),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.08),
-                      blurRadius: 8)
-                ],
+              child: Text(
+                'No addresses saved',
+                style: GoogleFonts.poppins(color: Colors.grey),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 44, height: 44,
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              itemCount: _addresses.length + 1,
+              itemBuilder: (context, index) {
+                if (index == _addresses.length) {
+                  return _buildPaymentMethodPicker();
+                }
+                final address = _addresses[index];
+                final isSelected = _selectedAddress == index;
+                return GestureDetector(
+                  onTap: () => setState(() {
+                    _selectedAddress = index;
+                    final lat = (_addresses[index]['lat'] as num?)?.toDouble();
+                    final lng = (_addresses[index]['lng'] as num?)?.toDouble();
+                    CategoryRepository.updateLocation(lat, lng);
+                  }),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0C831F).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFF0C831F)
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withValues(alpha: 0.08),
+                          blurRadius: 8,
+                        ),
+                      ],
                     ),
-                    child: Icon(address['icon'],
-                        color: const Color(0xFF0C831F), size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(address['type'],
-                                style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold)),
-                            if (isSelected)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                    color: const Color(0xFF0C831F),
-                                    borderRadius: BorderRadius.circular(10)),
-                                child: Text('Selected',
-                                    style: GoogleFonts.poppins(
-                                        color: Colors.white, fontSize: 10)),
-                              ),
-                          ],
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF0C831F,
+                            ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            address['icon'],
+                            color: const Color(0xFF0C831F),
+                            size: 22,
+                          ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(address['name'],
-                            style: GoogleFonts.poppins(
-                                fontSize: 13, fontWeight: FontWeight.w500)),
-                        if ((address['building'] ?? '').toString().trim().isNotEmpty)
-                          Text(address['building'],
-                              style: GoogleFonts.poppins(
-                                  fontSize: 12, color: Colors.grey)),
-                        Text(address['address'],
-                            style: GoogleFonts.poppins(
-                                fontSize: 12, color: Colors.grey)),
-                        Text(address['city'],
-                            style: GoogleFonts.poppins(
-                                fontSize: 12, color: Colors.grey)),
-                        Text(address['phone'],
-                            style: GoogleFonts.poppins(
-                                fontSize: 12, color: Colors.grey)),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () => _showAddressSheet(editIndex: index),
-                              child: Text('Edit',
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    address['type'],
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0C831F),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        'Selected',
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                address['name'],
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if ((address['building'] ?? '')
+                                  .toString()
+                                  .trim()
+                                  .isNotEmpty)
+                                Text(
+                                  address['building'],
                                   style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      color: const Color(0xFF0C831F),
-                                      fontWeight: FontWeight.w600)),
-                            ),
-                            const SizedBox(width: 16),
-                            GestureDetector(
-                              onTap: () async {
-                                final backendId = address['backend_id'];
-                                try {
-                                  if (backendId != null) {
-                                    await ApiService.deleteAddress(backendId.toString());
-                                  if (!mounted) return;
-                                  }
-                                  setState(() {
-                                    _addresses.removeAt(index);
-                                    if (index < _selectedAddress) _selectedAddress--;
-                                    if (_selectedAddress >= _addresses.length) {
-                                      _selectedAddress = 0;
-                                    }
-                                  });
-                                  _saveAddresses();
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Failed to delete address: $e')),
-                                    );
-                                  }
-                                }
-                              },
-                              child: Text('Delete',
-                                  style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.w600)),
-                            ),
-                          ],
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              Text(
+                                address['address'],
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                address['city'],
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                address['phone'],
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () =>
+                                        _showAddressSheet(editIndex: index),
+                                    child: Text(
+                                      'Edit',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        color: const Color(0xFF0C831F),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      final backendId = address['backend_id'];
+                                      try {
+                                        if (backendId != null) {
+                                          await ApiService.deleteAddress(
+                                            backendId.toString(),
+                                          );
+                                          if (!mounted) return;
+                                        }
+                                        setState(() {
+                                          _addresses.removeAt(index);
+                                          if (index < _selectedAddress)
+                                            _selectedAddress--;
+                                          if (_selectedAddress >=
+                                              _addresses.length) {
+                                            _selectedAddress = 0;
+                                          }
+                                        });
+                                        _saveAddresses();
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Failed to delete address: $e',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    child: Text(
+                                      'Delete',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
-      ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 10,
+            ),
           ],
         ),
         child: ElevatedButton(
@@ -1011,35 +1257,26 @@ class _AddressScreenState extends State<AddressScreen> {
             backgroundColor: const Color(0xFF0C831F),
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14)),
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
           child: _isLoading
               ? const CircularProgressIndicator(
-              color: Colors.white, strokeWidth: 2)
-              : Text(
-              _paymentMethod == 'cod'
-                  ? 'Place Order \u2022 \u20b9${widget.totalAmount}'
-                  : 'Pay \u20b9${widget.totalAmount}',
-              style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold)),
+                  strokeWidth: 2,
+                )
+              : Text(
+                  _paymentMethod == 'cod'
+                      ? 'Place Order \u2022 \u20b9${widget.totalAmount}'
+                      : 'Pay \u20b9${widget.totalAmount}',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
       ),
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
