@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:dio/dio.dart' show DioException, DioExceptionType, RequestOptions;
 import 'package:flutter/services.dart' show rootBundle;
 import '../../domain/entities/gift_card_entity.dart';
@@ -8,6 +8,8 @@ class GiftCardMockDataSource {
   List<GiftCardModel>? _cache;
 
   bool simulateError = false;
+
+  final Set<String> _redeemedCodes = {};
 
   Future<void> _delay() => Future.delayed(const Duration(milliseconds: 700));
 
@@ -31,7 +33,7 @@ class GiftCardMockDataSource {
       );
     }
     final list = await _loadSeed();
-    return list.where((c) => c.status == GiftCardStatus.active).toList();
+    return list.where((c) => c.status == GiftCardStatus.active && DateTime(c.expiryDate.year, c.expiryDate.month, c.expiryDate.day).add(const Duration(days: 1)).isAfter(DateTime.now())).toList();
   }
 
   Future<List<GiftCardModel>> fetchRedeemedCards() async {
@@ -71,6 +73,14 @@ class GiftCardMockDataSource {
     }
 
     final list = await _loadSeed();
+    if (_redeemedCodes.contains(normalized)) {
+      throw DioException(
+        requestOptions: RequestOptions(path: '/gift-cards/redeem'),
+        error: 'This gift card has already been redeemed',
+        type: DioExceptionType.badResponse,
+      );
+    }
+    _redeemedCodes.add(normalized);
     final newCard = GiftCardModel(
       id: 'gc_${DateTime.now().millisecondsSinceEpoch}',
       cardNumber:

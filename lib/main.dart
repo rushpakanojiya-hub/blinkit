@@ -1,11 +1,15 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:media_store_plus/media_store_plus.dart';
 import 'package:provider/provider.dart';
 import 'services/api_service.dart';
+import 'services/push_notification_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
+import 'routes/app_routes.dart';
+import 'core/theme/app_theme.dart' show AppTheme;
+import 'core/theme/theme_provider.dart';
 
 // Providers
 import 'providers/cart_provider.dart';
@@ -52,12 +56,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()..loadCart()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => ReferralProvider()),
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()..load()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..load()),
         ChangeNotifierProvider(create: (_) => SupportProvider()),
         ChangeNotifierProvider(create: (_) => WalletProvider()),
         ChangeNotifierProvider(create: (_) => WishlistProvider()),
@@ -84,14 +89,15 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ],
-      child: MaterialApp(
+      child: Builder(builder: (context) => MaterialApp(
+      navigatorKey: PushNotificationService.navigatorKey,
       debugShowCheckedModeBanner: false,
         title: 'GoFresh',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: context.watch<ThemeProvider>().mode,
         home: const SplashScreen(),
+        onGenerateRoute: AppRoutes.generateRoute,
         builder: (context, child) {
           final width = MediaQuery.of(context).size.width;
           // Only constrain to a phone-like column on truly narrow
@@ -114,7 +120,7 @@ class MyApp extends StatelessWidget {
           }
           return child ?? const SizedBox.shrink();
         },
-      ),
+      )),
     );
   }
 }

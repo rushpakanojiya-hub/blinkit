@@ -1,4 +1,4 @@
-﻿enum GiftCardStatus { active, redeemed, expired }
+enum GiftCardStatus { active, redeemed, expired }
 
 class GiftCardEntity {
   final String id;
@@ -15,6 +15,6 @@ class GiftCardEntity {
     required this.status,
   });
 
-  bool get isActive => status == GiftCardStatus.active;
+  bool get isActive => status == GiftCardStatus.active && DateTime(expiryDate.year, expiryDate.month, expiryDate.day).add(const Duration(days: 1)).isAfter(DateTime.now());
 }
 

@@ -1,55 +1,56 @@
-﻿import '../../models/wallet_model.dart';
+import '../../models/wallet_model.dart';
+import '../../services/api_service.dart';
 
 class WalletRepository {
   static const int pageSize = 6;
 
-  late final List<WalletTransaction> _all = List.generate(20, (i) {
-    final types = TransactionType.values;
-    final type = types[i % types.length];
-    String desc;
-    switch (type) {
-      case TransactionType.cashback:
-        desc = 'Cashback on order #GF${1000 + i}';
-        break;
-      case TransactionType.refund:
-        desc = 'Refund for order #GF${1000 + i}';
-        break;
-      case TransactionType.debit:
-        desc = 'Used for order #GF${1000 + i}';
-        break;
-      case TransactionType.credit:
-        desc = 'Added to wallet';
-        break;
-    }
-    return WalletTransaction(
-      id: 'TXN${2000 + i}',
-      amount: 20 + (i * 7) % 200,
-      date: DateTime.now().subtract(Duration(days: i)),
-      status: i % 5 == 0 ? TransactionStatus.pending : TransactionStatus.success,
-      type: type,
-      description: desc,
-    );
-  });
-
-  Future<WalletSummary> fetchSummary({bool simulateError = false}) async {
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (simulateError) throw Exception('Unable to load wallet summary');
-    final cashback = _all
-        .where((t) => t.type == TransactionType.cashback)
-        .fold(0, (s, t) => s + t.amount);
+  Future<WalletSummary> fetchSummary() async {
+    final data = await ApiService.getWallet();
+    final balance = ((data['balance'] ?? 0) as num).toInt();
+    final transactions = (data['transactions'] as List?) ?? [];
+    final cashback = transactions
+        .where((t) => t['reason'] == 'cashback')
+        .fold<int>(0, (sum, t) => sum + ((t['amount'] ?? 0) as num).toInt());
     return WalletSummary(
-        currentBalance: 250, cashbackEarned: cashback, totalSavings: cashback + 180);
+      currentBalance: balance,
+      cashbackEarned: cashback,
+      totalSavings: cashback,
+    );
   }
 
   Future<List<WalletTransaction>> fetchTransactions(TransactionType? filterType,
-      {int page = 0, bool simulateError = false}) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (simulateError) throw Exception('Unable to load transactions');
+      {int page = 0}) async {
+    final data = await ApiService.getWallet();
+    final raw = (data['transactions'] as List?) ?? [];
+    final all = raw.map((t) => _fromJson(t as Map<String, dynamic>)).toList();
     final filtered =
-        filterType == null ? _all : _all.where((t) => t.type == filterType).toList();
+        filterType == null ? all : all.where((t) => t.type == filterType).toList();
     final start = page * pageSize;
     if (start >= filtered.length) return [];
     final end = (start + pageSize).clamp(0, filtered.length);
     return filtered.sublist(start, end);
+  }
+
+  WalletTransaction _fromJson(Map<String, dynamic> json) {
+    final reason = json['reason']?.toString() ?? '';
+    final txnType = json['type']?.toString() ?? 'credit';
+    TransactionType type;
+    if (reason == 'cashback') {
+      type = TransactionType.cashback;
+    } else if (reason.contains('refund')) {
+      type = TransactionType.refund;
+    } else {
+      type = txnType == 'debit' ? TransactionType.debit : TransactionType.credit;
+    }
+    return WalletTransaction(
+      id: json['id'].toString(),
+      amount: ((json['amount'] ?? 0) as num).toInt(),
+      date: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+      status: TransactionStatus.success,
+      type: type,
+      description: json['note']?.toString().isNotEmpty == true
+          ? json['note'].toString()
+          : reason.replaceAll('_', ' '),
+    );
   }
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/utils/view_state.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
@@ -40,7 +40,12 @@ class _GstListScreenState extends State<GstListScreen> {
       ),
     );
     if (confirmed == true && context.mounted) {
-      context.read<GstProvider>().deleteGst(id);
+      final gstProvider = context.read<GstProvider>();
+      final messenger = ScaffoldMessenger.of(context);
+      await gstProvider.deleteGst(id);
+      if (gstProvider.errorMessage != null) {
+        messenger.showSnackBar(SnackBar(content: Text(gstProvider.errorMessage!)));
+      }
     }
   }
 

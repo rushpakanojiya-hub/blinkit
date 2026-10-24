@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:http/http.dart' as http;
 import 'api_service.dart';
 import '../screens/order_screen.dart';
@@ -34,6 +37,14 @@ class PushNotificationService {
     importance: Importance.high,
   );
 
+  static void handleTap(String? payload) {
+    if (payload != null && payload.startsWith('file:')) {
+      SharePlus.instance.share(ShareParams(files: [XFile(payload.substring(5))], text: 'Invoice'));
+      return;
+    }
+    _openFromId(payload);
+  }
+
   static void _openFromId(String? orderId) {
     if (orderId == null || orderId.isEmpty) {
       _openOrders();
@@ -63,7 +74,7 @@ class PushNotificationService {
 
   static Future<void> initialize() async {
     if (_initialized) return;
-    _initialized = true;
+    
     try {
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp();
@@ -72,8 +83,9 @@ class PushNotificationService {
       await _local.initialize(
         const InitializationSettings(
           android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+          iOS: DarwinInitializationSettings(),
         ),
-        onDidReceiveNotificationResponse: (r) => _openFromId(r.payload),
+        onDidReceiveNotificationResponse: (r) => handleTap(r.payload),
       );
       final android = _local.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       await android?.createNotificationChannel(_channel);
@@ -89,6 +101,7 @@ class PushNotificationService {
       messaging.onTokenRefresh.listen(_registerTokenWithBackend);
 
       FirebaseMessaging.onMessage.listen(_onForeground);
+      _initialized = true;
       FirebaseMessaging.onMessageOpenedApp
           .listen((m) => _openFromId(m.data['order_id']?.toString()));
 
@@ -116,6 +129,16 @@ class PushNotificationService {
     }
   }
 
+  /// Call on logout (after the auth token is cleared) so this device stops
+  /// receiving the previous user's order notifications.
+  static Future<void> unregisterDevice() async {
+    try {
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (e) {
+      debugPrint('unregisterDevice failed: $e');
+    }
+  }
+
   static void _onForeground(RemoteMessage msg) {
     final n = msg.notification;
     if (n == null) return;
@@ -125,6 +148,7 @@ class PushNotificationService {
       n.title,
       n.body,
       const NotificationDetails(
+      iOS: DarwinNotificationDetails(),
         android: AndroidNotificationDetails(
           'order_updates',
           'Order updates',
@@ -144,7 +168,7 @@ class PushNotificationService {
             headers: headers,
             body: jsonEncode({
               'token': token,
-              'platform': 'android',
+              'platform': (kIsWeb ? 'web' : (Platform.isIOS ? 'ios' : 'android')),
             }),
           )
           .timeout(const Duration(seconds: 15));

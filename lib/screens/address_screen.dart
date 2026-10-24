@@ -1,14 +1,18 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../providers/cart_provider.dart';
+import '../providers/order_provider.dart';
+import '../models/order_model.dart';
 import '../services/api_service.dart';
+import '../features/category_nav/repositories/category_repository.dart';
 import 'order_screen.dart';
-import '../services/location_service.dart';
 import 'location_picker_screen.dart';
+import '../services/nominatim_service.dart';
 
 class AddressScreen extends StatefulWidget {
   final List<Map<String, dynamic>> items;
@@ -32,7 +36,7 @@ class _AddressScreenState extends State<AddressScreen> {
   bool _isLoading = false;
   int? _currentOrderId;
   String _paymentMethod = 'online'; // 'online' or 'cod'
-  bool _useWallet = false;
+  final bool _useWallet = false;
 
   List<Map<String, dynamic>> _addresses = [];
 
@@ -43,6 +47,32 @@ class _AddressScreenState extends State<AddressScreen> {
     _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    _loadCachedAddressesThenRefresh();
+  }
+
+  // Show whatever we saved locally last time immediately (no network wait,
+  // no empty-state flash), then quietly refresh from the backend in the
+  // background and update the list if anything changed.
+  Future<void> _loadCachedAddressesThenRefresh() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString('saved_addresses');
+      if (cached != null) {
+        final List<dynamic> decoded = jsonDecode(cached);
+        final cachedList = decoded.map<Map<String, dynamic>>((e) {
+          final map = Map<String, dynamic>.from(e);
+          map['icon'] = _iconFromType(map['type'] ?? 'Home');
+          return map;
+        }).toList();
+        if (cachedList.isNotEmpty && mounted) {
+          setState(() {
+            _addresses = cachedList;
+          });
+        }
+      }
+    } catch (_) {
+      // Ignore cache errors - the backend fetch below is the source of truth.
+    }
     _loadAddresses();
   }
 
@@ -59,6 +89,8 @@ class _AddressScreenState extends State<AddressScreen> {
   Future<void> _loadAddresses() async {
     try {
       final backendAddresses = await ApiService.getAddresses();
+      if (_syncInFlight.isNotEmpty) return;
+      if (!mounted) return;
       setState(() {
         _addresses = backendAddresses.map<Map<String, dynamic>>((a) {
           final map = Map<String, dynamic>.from(a);
@@ -70,6 +102,7 @@ class _AddressScreenState extends State<AddressScreen> {
             'icon': _iconFromType(map['label'] ?? 'Home'),
             'name': map['full_name'] ?? '',
             'address': map['line1'] ?? '',
+            'building': map['line2'] ?? '',
             'city': cityLine,
             'phone': map['phone'] ?? '',
             'lat': map['lat'],
@@ -77,8 +110,17 @@ class _AddressScreenState extends State<AddressScreen> {
             'backend_id': map['id'],
           };
         }).toList();
+        if (_addresses.isNotEmpty) {
+          if (_selectedAddress >= _addresses.length) _selectedAddress = 0;
+          final sel = _addresses[_selectedAddress];
+          final lat = (sel['lat'] as num?)?.toDouble();
+          final lng = (sel['lng'] as num?)?.toDouble();
+          CategoryRepository.updateLocation(lat, lng);
+        }
       });
+      _saveAddresses();
     } catch (e) {
+      if (!mounted) return;
       // Network/auth error: show an empty list rather than any cached or
       // placeholder data, so we never risk showing someone else's address.
       setState(() {
@@ -108,8 +150,24 @@ class _AddressScreenState extends State<AddressScreen> {
   // Creates (or re-creates) this local address as a real backend Address
   // row so checkout has an address_id to work with. Stores the returned
   // id back onto the local entry.
-  Future<int?> _syncAddressToBackend(int index) async {
+  final Map<Map<String, dynamic>, Future<int?>> _syncInFlight = {};
+
+  // One sync per address at a time, keyed by the address map itself (not its
+  // list index, which shifts on delete), so checkout can't create a duplicate
+  // of an address that a background save is still syncing.
+  Future<int?> _syncAddressToBackend(int index) {
     final addr = _addresses[index];
+    final running = _syncInFlight[addr];
+    if (running != null) return running;
+    final f = _doSyncAddress(addr, index == 0).whenComplete(() {
+      _syncInFlight.remove(addr);
+    });
+    _syncInFlight[addr] = f;
+    return f;
+  }
+
+  Future<int?> _doSyncAddress(Map<String, dynamic> addr, bool isDefault) async {
+    
     final phoneDigits =
         (addr['phone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
     final phone10 = phoneDigits.length >= 10
@@ -126,24 +184,30 @@ class _AddressScreenState extends State<AddressScreen> {
     String pincode = pinMatch != null ? pinMatch.group(1)! : '000000';
 
     try {
-      final result = await ApiService.createAddress({
+      final payload = {
         'label': addr['type'] ?? 'Home',
         'full_name': addr['name'] ?? '',
         'phone': phone10,
         'line1': addr['address'] ?? '',
-        'line2': '',
+        'line2': (addr['building'] ?? '').toString().trim(),
         'city': city.isEmpty ? 'NA' : city,
         'state': state.isEmpty ? 'NA' : state,
         'pincode': pincode,
         'lat': addr['lat'],
         'lng': addr['lng'],
-        'is_default': index == 0,
-      });
-      final id = result['id'];
+        'is_default': isDefault,
+      };
+      final existingBackendId = addr['backend_id'];
+      final result = existingBackendId != null
+          ? await ApiService.updateAddress(existingBackendId.toString(), payload)
+          : await ApiService.createAddress(payload);
+      final id = result['id'] ?? existingBackendId;
       if (id != null) {
-        setState(() {
-          _addresses[index]['backend_id'] = id;
-        });
+        if (mounted) {
+          setState(() {
+            addr['backend_id'] = id;
+          });
+        }
         _saveAddresses();
       }
       return id;
@@ -153,6 +217,11 @@ class _AddressScreenState extends State<AddressScreen> {
   }
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
     try {
       if (_currentOrderId == null) throw Exception('Missing order reference');
       await ApiService.verifyPayment(
@@ -161,21 +230,25 @@ class _AddressScreenState extends State<AddressScreen> {
         razorpayPaymentId: response.paymentId ?? '',
         razorpaySignature: response.signature ?? '',
       );
-      if (mounted) {
-        await context.read<CartProvider>().loadCart();
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const OrderScreen()),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Payment Successful! Order Placed \u{1F389}',
-              style: GoogleFonts.poppins()),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
+      if (!mounted) return;
+      await context.read<CartProvider>().loadCart();
+      if (!mounted) return;
+      await context.read<OrderProvider>().loadOrders(OrderStatus.active, refresh: true);
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const OrderScreen()),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Payment Successful! Order Placed \u{1F389}',
+            style: GoogleFonts.poppins()),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ));
     } catch (e) {
       if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Error: $e', style: GoogleFonts.poppins()),
           backgroundColor: Colors.red,
@@ -277,19 +350,21 @@ class _AddressScreenState extends State<AddressScreen> {
 
       if (_paymentMethod == 'cod') {
         // COD: order is placed directly, nothing more to pay right now.
-        if (mounted) {
-          await context.read<CartProvider>().loadCart();
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const OrderScreen()),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Order Placed! Pay on delivery \u{1F4E6}',
-                style: GoogleFonts.poppins()),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ));
-        }
+        if (!mounted) return;
+        await context.read<CartProvider>().loadCart();
+        if (!mounted) return;
+        await context.read<OrderProvider>().loadOrders(OrderStatus.active, refresh: true);
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OrderScreen()),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Order Placed! Pay on delivery \u{1F4E6}',
+              style: GoogleFonts.poppins()),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ));
         setState(() => _isLoading = false);
         return;
       }
@@ -311,11 +386,33 @@ class _AddressScreenState extends State<AddressScreen> {
       };
       _razorpay.open(options);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error: $e', style: GoogleFonts.poppins()),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Icon(Icons.shopping_bag_outlined, color: Color(0xFFF5C518), size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  e.toString().replaceFirst('Exception: ', ''),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF2D2D2D),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(left: 16, right: 16, bottom: 80),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          duration: const Duration(seconds: 3),
+        ));
+      }
     }
     setState(() => _isLoading = false);
   }
@@ -348,7 +445,7 @@ class _AddressScreenState extends State<AddressScreen> {
     String selectedType = existing?['type'] ?? 'Home';
     double? capturedLat = (existing?['lat'] as num?)?.toDouble();
     double? capturedLng = (existing?['lng'] as num?)?.toDouble();
-    bool isLocatingModal = false;
+    String? formError;
     String? locationErrorModal;
 
     showModalBottomSheet(
@@ -487,24 +584,67 @@ class _AddressScreenState extends State<AddressScreen> {
                   _buildTextField(nameController, "Receiver's Name", Icons.person_outline),
                   const SizedBox(height: 12),
                   _buildTextField(phoneController, "Receiver's Phone Number",
-                      Icons.phone_outlined, keyboardType: TextInputType.phone),
+                      Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      maxLength: 10),
+                  if (formError != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(formError!,
+                          style: GoogleFonts.poppins(color: Colors.white, fontSize: 13)),
+                    ),
+                  ],
                   const SizedBox(height: 24),
-
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (nameController.text.isEmpty ||
                             addressController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('Please fill all fields',
-                                style: GoogleFonts.poppins()),
-                            backgroundColor: Colors.red,
-                            behavior: SnackBarBehavior.floating,
-                          ));
+                          setModalState(() => formError = 'Please fill all fields');
                           return;
                         }
 
+                        if (!RegExp(r'^[6-9]\d{9}$').hasMatch(phoneController.text)) {
+                          setModalState(() => formError = 'Enter a valid 10-digit phone number');
+                          return;
+                        }
+
+                        if (capturedLat == null || capturedLng == null) {
+                          final query = [
+                            buildingController.text.trim(),
+                            addressController.text.trim(),
+                            cityController.text.trim(),
+                          ].where((s) => s.isNotEmpty).join(', ');
+                          var results = await NominatimService.search(query);
+                          debugPrint('GEOCODE: query=$query results=${results.length}');
+                          if (results.isEmpty && cityController.text.trim().isNotEmpty) {
+                            final cityQuery = cityController.text.trim();
+                            results = await NominatimService.search(cityQuery);
+                            debugPrint('GEOCODE_FALLBACK_CITY: query=$cityQuery results=${results.length}');
+                          }
+                          if (results.isEmpty) {
+                            final pinMatch = RegExp(r'(\d{6})').firstMatch(cityController.text);
+                            if (pinMatch != null) {
+                              final pinQuery = pinMatch.group(1)!;
+                              results = await NominatimService.search(pinQuery);
+                              debugPrint('GEOCODE_FALLBACK_PIN: query=$pinQuery results=${results.length}');
+                            }
+                          }
+                          if (results.isNotEmpty) {
+                            capturedLat = results.first.lat;
+                            capturedLng = results.first.lng;
+                          }
+                        }
+
+                        if (!mounted) return;
                         final newAddress = {
                           'type': selectedType,
                           'icon': _iconFromType(selectedType),
@@ -515,13 +655,16 @@ class _AddressScreenState extends State<AddressScreen> {
                           'phone': phoneController.text,
                           'lat': capturedLat,
                           'lng': capturedLng,
+                          'backend_id': existing?['backend_id'],
                         };
 
                         setState(() {
                           if (editIndex != null) {
                             _addresses[editIndex] = newAddress;
+                            _selectedAddress = editIndex;
                           } else {
                             _addresses.add(newAddress);
+                            _selectedAddress = _addresses.length - 1;
                           }
                         });
 
@@ -568,11 +711,18 @@ class _AddressScreenState extends State<AddressScreen> {
       TextEditingController controller, String hint, IconData icon, {
         TextInputType keyboardType = TextInputType.text,
         int maxLines = 1,
+      List<TextInputFormatter>? inputFormatters,
+      int? maxLength,
       }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      inputFormatters: inputFormatters,
+      maxLength: maxLength,
+      buildCounter: maxLength != null
+          ? (context, {required currentLength, required isFocused, maxLength}) => null
+          : null,
       style: GoogleFonts.poppins(fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
@@ -625,18 +775,6 @@ class _AddressScreenState extends State<AddressScreen> {
             title: 'Cash on Delivery',
             subtitle: 'Pay when your order arrives',
             icon: Icons.payments_outlined,
-          ),
-          const SizedBox(height: 12),
-          CheckboxListTile(
-            value: _useWallet,
-            onChanged: (val) => setState(() => _useWallet = val ?? false),
-            title: Text('Use Wallet Balance',
-                style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500)),
-            subtitle: Text('Apply your GoFresh Money balance to this order',
-                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey[600])),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            activeColor: const Color(0xFF0C831F),
           ),
         ],
       ),
@@ -729,7 +867,12 @@ class _AddressScreenState extends State<AddressScreen> {
           final address = _addresses[index];
           final isSelected = _selectedAddress == index;
           return GestureDetector(
-            onTap: () => setState(() => _selectedAddress = index),
+            onTap: () => setState(() {
+              _selectedAddress = index;
+              final lat = (_addresses[index]['lat'] as num?)?.toDouble();
+              final lng = (_addresses[index]['lng'] as num?)?.toDouble();
+              CategoryRepository.updateLocation(lat, lng);
+            }),
             child: Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
@@ -788,6 +931,10 @@ class _AddressScreenState extends State<AddressScreen> {
                         Text(address['name'],
                             style: GoogleFonts.poppins(
                                 fontSize: 13, fontWeight: FontWeight.w500)),
+                        if ((address['building'] ?? '').toString().trim().isNotEmpty)
+                          Text(address['building'],
+                              style: GoogleFonts.poppins(
+                                  fontSize: 12, color: Colors.grey)),
                         Text(address['address'],
                             style: GoogleFonts.poppins(
                                 fontSize: 12, color: Colors.grey)),
@@ -815,9 +962,11 @@ class _AddressScreenState extends State<AddressScreen> {
                                 try {
                                   if (backendId != null) {
                                     await ApiService.deleteAddress(backendId.toString());
+                                  if (!mounted) return;
                                   }
                                   setState(() {
                                     _addresses.removeAt(index);
+                                    if (index < _selectedAddress) _selectedAddress--;
                                     if (_selectedAddress >= _addresses.length) {
                                       _selectedAddress = 0;
                                     }
@@ -880,6 +1029,9 @@ class _AddressScreenState extends State<AddressScreen> {
     );
   }
 }
+
+
+
 
 
 

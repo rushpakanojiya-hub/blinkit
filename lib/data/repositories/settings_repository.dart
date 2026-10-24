@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification_prefs_model.dart';
@@ -36,7 +36,7 @@ class SettingsRepository {
 
   Future<String> fetchThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_themeKey) ?? 'system';
+    return prefs.getString(_themeKey) ?? 'light';
   }
 
   Future<void> saveThemeMode(String mode) async {

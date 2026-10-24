@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../widgets/transaction_card.dart';
 import '../../widgets/state_views.dart';
+import 'add_money_screen.dart';
 
 const Color kGreen = Color(0xFF0C831F);
 
@@ -49,6 +50,8 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
       body: Column(
         children: [
           _buildSummary(scheme),
+          _buildAddMoneyButton(context),
+          const SizedBox(height: 8),
           TabBar(
             controller: _tabController,
             labelColor: kGreen,
@@ -64,6 +67,34 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAddMoneyButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AddMoneyScreen()),
+            );
+            if (context.mounted) {
+              context.read<WalletProvider>().loadSummary(refresh: true);
+            }
+          },
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: Text('Add Money',
+              style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kGreen,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        ),
       ),
     );
   }
@@ -96,7 +127,7 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
             children: [
               Text('Current Balance', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 4),
-              Text('${summary.currentBalance}',
+              Text('\u20B9${summary.currentBalance}',
                   style: GoogleFonts.poppins(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               Row(
@@ -117,7 +148,7 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
   Widget _summaryStat(String label, int value) {
     return Column(
       children: [
-        Text('$value', style: GoogleFonts.poppins(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text('\u20B9$value', style: GoogleFonts.poppins(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 2),
         Text(label, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11)),
       ],

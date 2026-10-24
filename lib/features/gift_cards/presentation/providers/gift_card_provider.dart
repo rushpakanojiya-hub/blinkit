@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../core/utils/view_state.dart';
 import '../../domain/entities/gift_card_entity.dart';
 import '../../domain/repositories/gift_card_repository.dart';
@@ -26,6 +26,19 @@ class GiftCardProvider extends ChangeNotifier {
   RedeemStatus redeemStatus = RedeemStatus.idle;
   String? redeemErrorMessage;
   GiftCardEntity? lastRedeemedCard;
+
+  void clear() {
+    activeCards = [];
+    redeemedCards = [];
+    activeStatus = ViewStatus.initial;
+    redeemedStatus = ViewStatus.initial;
+    activeErrorMessage = null;
+    redeemedErrorMessage = null;
+    redeemStatus = RedeemStatus.idle;
+    redeemErrorMessage = null;
+    lastRedeemedCard = null;
+    notifyListeners();
+  }
 
   Future<void> loadActiveCards() async {
     activeStatus = ViewStatus.loading;
@@ -67,8 +80,8 @@ class GiftCardProvider extends ChangeNotifier {
     if (result.isSuccess && result.data != null) {
       lastRedeemedCard = result.data;
       redeemStatus = RedeemStatus.success;
-      activeCards = [...activeCards, result.data!];
-      activeStatus = ViewStatus.loaded;
+      redeemedCards = [result.data!, ...redeemedCards];
+      redeemedStatus = ViewStatus.loaded;
     } else {
       redeemStatus = RedeemStatus.error;
       redeemErrorMessage = result.failure?.message;

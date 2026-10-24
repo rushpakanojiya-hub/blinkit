@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../data/models/app_info_model.dart';
 import '../../data/repositories/app_info_repository.dart';
+import '../legal_screen.dart';
 
 const Color kGreen = Color(0xFF0C831F);
 
@@ -10,11 +11,14 @@ class AboutUsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('About us')),
       body: FutureBuilder<AppInfoModel>(
         future: AppInfoRepository().fetchAppInfo(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Could not load info. Please try again later.'));
+          }
           if (!snapshot.hasData) {
             return const Center(
                 child: CircularProgressIndicator(color: kGreen));
@@ -38,13 +42,25 @@ class AboutUsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _tile(context, Icons.business_outlined, 'Company', info.company,
-                  null),
+                  onTap: () {}),
               _tile(context, Icons.description_outlined, 'Terms of service',
-                  null, info.termsUrl),
+                  null, onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            const LegalScreen(type: LegalDocType.terms)));
+              }),
               _tile(context, Icons.privacy_tip_outlined, 'Privacy policy',
-                  null, info.privacyUrl),
+                  null, onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            const LegalScreen(type: LegalDocType.privacy)));
+              }),
               _tile(context, Icons.article_outlined, 'Open source licenses',
-                  null, null, onTap: () => showLicensePage(context: context)),
+                  null, onTap: () => showLicensePage(context: context)),
             ],
           );
         },
@@ -53,8 +69,8 @@ class AboutUsScreen extends StatelessWidget {
   }
 
   Widget _tile(BuildContext context, IconData icon, String title,
-      String? subtitle, String? url,
-      {VoidCallback? onTap}) {
+      String? subtitle,
+      {required VoidCallback onTap}) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -63,13 +79,7 @@ class AboutUsScreen extends StatelessWidget {
         title: Text(title),
         subtitle: subtitle != null ? Text(subtitle) : null,
         trailing: const Icon(Icons.chevron_right),
-        onTap: onTap ??
-            () {
-              // Wire package:url_launcher launchUrl(Uri.parse(url!)) here.
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Opening: $url')),
-              );
-            },
+        onTap: onTap,
       ),
     );
   }

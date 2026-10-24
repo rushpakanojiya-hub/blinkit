@@ -7,6 +7,7 @@ import '../../../../core/widgets/custom_text_field.dart';
 import '../../domain/entities/address_entity.dart';
 import '../providers/address_provider.dart';
 import '../../../../services/location_service.dart';
+import '../../../../services/nominatim_service.dart';
 
 class AddEditAddressScreen extends StatefulWidget {
   final AddressEntity? existing;
@@ -38,6 +39,7 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
     setState(() => _isFetchingLocation = true);
     try {
       final result = await LocationService.getCurrentLocation();
+      if (!mounted) return;
       setState(() {
         _latitude = result.latitude;
         _longitude = result.longitude;
@@ -88,6 +90,17 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_latitude == null || _longitude == null) {
+      final query = "${_houseNumber.text.trim()}, ${_areaStreet.text.trim()}, ${_city.text.trim()}, ${_state.text.trim()}, ${_pincode.text.trim()}";
+      final results = await NominatimService.search(query);
+      debugPrint('Geocode query: $query -> ${results.length} results');
+      if (results.isNotEmpty) {
+        _latitude = results.first.lat;
+        _longitude = results.first.lng;
+      }
+    }
+
+    if (!mounted) return;
     final provider = context.read<AddressProvider>();
     final entity = AddressEntity(
       id: widget.existing?.id ?? const Uuid().v4(),

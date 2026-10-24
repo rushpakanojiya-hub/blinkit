@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
+import '../services/push_notification_service.dart';
 
 const Color kSplashBg = Color(0xFF0A0F0A);
 
@@ -39,10 +40,14 @@ class _SplashScreenState extends State<SplashScreen>
       // disposed while we were waiting on SharedPreferences.
       if (!mounted) return;
       final token = prefs.getString('token');
+      final skipped = prefs.getBool('skipped_login') ?? false;
+      if (token != null && token.isNotEmpty) {
+        PushNotificationService.initialize();
+      }
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => token != null && token.isNotEmpty
+          builder: (_) => (skipped || (token != null && token.isNotEmpty))
               ? const HomeScreen()
               : const LoginScreen(),
         ),

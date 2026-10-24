@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../core/avatar/avatar_catalog.dart';
@@ -44,7 +44,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final provider = context.watch<ProfileProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Edit profile')),
       body: SafeArea(
         child: Form(
@@ -59,28 +59,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       context,
                       currentAvatarId: provider.pendingAvatarId,
                     );
-                    if (avatarId != null) {
+                    if (avatarId != null && context.mounted) {
                       context.read<ProfileProvider>().setPendingAvatar(avatarId);
                     }
                   },
-                  child: Stack(
-                    children: [
-                      AvatarDisplay(
-                        avatarId: provider.pendingAvatarId,
-                        fallbackName: _nameCtrl.text,
-                        radius: 48,
-                      ),
-                      const Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: CircleAvatar(
-                          radius: 15,
-                          backgroundColor: kGreen,
-                          child: Icon(Icons.edit,
-                              size: 16, color: Colors.white),
-                        ),
-                      ),
-                    ],
+                  child: AvatarDisplay(
+                    avatarId: provider.pendingAvatarId,
+                    fallbackName: _nameCtrl.text,
+                    radius: 48,
                   ),
                 ),
               ),
@@ -110,7 +96,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

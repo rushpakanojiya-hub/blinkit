@@ -1,9 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../data/repositories/settings_repository.dart';
 
 class ThemeProvider extends ChangeNotifier {
   final SettingsRepository _repo = SettingsRepository();
-  ThemeMode _mode = ThemeMode.system;
+  ThemeMode _mode = ThemeMode.light;
 
   ThemeMode get mode => _mode;
 

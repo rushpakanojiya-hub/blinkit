@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -26,9 +26,22 @@ class _ShareAppScreenState extends State<ShareAppScreen> {
     final referral = provider.referral;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Share the app')),
-      body: provider.loading || referral == null
+      body: (!provider.loading && referral == null)
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Could not load your referral code.'),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                      onPressed: () => context.read<ReferralProvider>().load(),
+                      child: const Text('Retry')),
+                ],
+              ),
+            )
+          : provider.loading || referral == null
           ? const Center(child: CircularProgressIndicator(color: kGreen))
           : ListView(
               padding: const EdgeInsets.all(16),

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/utils/view_state.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
@@ -21,10 +21,9 @@ class _GiftCardsScreenState extends State<GiftCardsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 1, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<GiftCardProvider>();
-      provider.loadActiveCards();
       provider.loadRedeemedCards();
     });
   }
@@ -43,8 +42,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen>
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Active Cards'),
-            Tab(text: 'Redeemed Cards'),
+            Tab(text: 'My Gift Cards'),
           ],
         ),
       ),
@@ -61,48 +59,10 @@ class _GiftCardsScreenState extends State<GiftCardsScreen>
       body: TabBarView(
         controller: _tabController,
         children: const [
-          _ActiveCardsTab(),
           _RedeemedCardsTab(),
         ],
       ),
     );
-  }
-}
-
-class _ActiveCardsTab extends StatelessWidget {
-  const _ActiveCardsTab();
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<GiftCardProvider>();
-
-    switch (provider.activeStatus) {
-      case ViewStatus.initial:
-      case ViewStatus.loading:
-        return SkeletonListView(itemBuilder: (_) => const _GiftCardSkeleton());
-      case ViewStatus.error:
-        return ErrorStateWidget(
-          message: provider.activeErrorMessage ?? 'Please try again.',
-          onRetry: provider.loadActiveCards,
-        );
-      case ViewStatus.empty:
-        return const EmptyStateWidget(
-          icon: Icons.card_giftcard_outlined,
-          title: 'No active gift cards',
-          message: 'Redeem a gift card code to see it here.',
-        );
-      case ViewStatus.loaded:
-        return RefreshIndicator(
-          onRefresh: provider.loadActiveCards,
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: provider.activeCards.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) =>
-                GiftCardTile(card: provider.activeCards[index]),
-          ),
-        );
-    }
   }
 }
 
@@ -125,8 +85,8 @@ class _RedeemedCardsTab extends StatelessWidget {
       case ViewStatus.empty:
         return const EmptyStateWidget(
           icon: Icons.history_rounded,
-          title: 'No redeemed cards yet',
-          message: 'Cards you\u2019ve fully used will show up here.',
+          title: 'No gift cards yet',
+          message: 'Redeem a gift card code to see it here.',
         );
       case ViewStatus.loaded:
         return RefreshIndicator(

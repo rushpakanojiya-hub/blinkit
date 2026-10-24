@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/notification_model.dart';
 import '../settings/notification_preferences_screen.dart';
@@ -36,8 +36,8 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
       NotificationModel(
         id: '2',
         type: NotificationType.offer,
-        title: 'Flat â‚¹100 OFF',
-        message: 'Use code SAVE100 on orders above â‚¹500. Valid till midnight.',
+        title: 'Flat \u20B9100 OFF',
+        message: 'Use code SAVE100 on orders above \u20B9500. Valid till midnight.',
         timestamp: now.subtract(const Duration(hours: 2)),
         isRead: false,
       ),
@@ -53,7 +53,7 @@ class _NotificationListScreenState extends State<NotificationListScreen> {
         id: '4',
         type: NotificationType.wallet,
         title: 'Cashback credited',
-        message: 'â‚¹25 cashback has been added to your wallet.',
+        message: '\u20B925 cashback has been added to your wallet.',
         timestamp: now.subtract(const Duration(days: 1)),
         isRead: true,
       ),

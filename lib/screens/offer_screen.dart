@@ -36,6 +36,7 @@ class _OfferScreenState extends State<OfferScreen> {
             child: Image.asset(
               'assets/images/onboarding/onboarding_hero.png',
               fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const SizedBox(),
             ),
           ),
 

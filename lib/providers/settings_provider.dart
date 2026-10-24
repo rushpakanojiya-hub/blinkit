@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../data/models/notification_prefs_model.dart';
 import '../data/repositories/settings_repository.dart';
+import '../services/api_service.dart';
 
 class SettingsProvider extends ChangeNotifier {
   final SettingsRepository _repo = SettingsRepository();
@@ -17,6 +18,14 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> load() async {
     hideSensitive = await _repo.fetchHideSensitive();
     notificationPrefs = await _repo.fetchNotificationPrefs();
+    try {
+      final tok = await ApiService.getToken();
+      if (tok != null && tok.isNotEmpty) {
+        final remote = await ApiService.getNotificationPrefs();
+        notificationPrefs = NotificationPrefsModel.fromJson(remote);
+        await _repo.saveNotificationPrefs(notificationPrefs);
+      }
+    } catch (_) {}
     notifyListeners();
   }
 
@@ -37,6 +46,9 @@ class SettingsProvider extends ChangeNotifier {
     );
     notifyListeners();
     await _repo.saveNotificationPrefs(notificationPrefs);
+    try {
+      await ApiService.updateNotificationPrefs({key: value});
+    } catch (_) {}
   }
 
   /// Clears in-memory provider state on logout.

@@ -45,13 +45,14 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     setState(() => _loadingAddresses = true);
     try {
       final backendAddresses = await ApiService.getAddresses();
+      if (!mounted) return;
       setState(() {
         _savedAddresses = backendAddresses
             .map<Map<String, dynamic>>((a) => Map<String, dynamic>.from(a))
             .toList();
       });
     } catch (_) {
-      setState(() => _savedAddresses = []);
+      if (mounted) setState(() => _savedAddresses = []);
     } finally {
       if (mounted) setState(() => _loadingAddresses = false);
     }
@@ -301,7 +302,6 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                               final phone10 = phoneController.text;
 
                               final line1 = [
-                                buildingController.text,
                                 addressController.text,
                               ].where((v) => v.trim().isNotEmpty).join(', ');
 
@@ -320,7 +320,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                                   'full_name': nameController.text,
                                   'phone': phone10,
                                   'line1': line1,
-                                  'line2': '',
+                                  'line2': buildingController.text.trim(),
                                   'city': city.isEmpty ? 'NA' : city,
                                   'state': state.isEmpty ? 'NA' : state,
                                   'pincode': pincode,
@@ -453,11 +453,11 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        foregroundColor: Colors.black,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         titleSpacing: 0,
         title: Text('Select Location',
             style: GoogleFonts.poppins(
-                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+                fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
       ),
       body: ListView(
         padding: EdgeInsets.zero,
@@ -582,7 +582,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
                           return Column(
                             children: [
                               ListTile(
-                                leading: Icon(_iconForLabel(a['label']), color: Colors.black87),
+                                leading: Icon(_iconForLabel(a['label']), color: Theme.of(context).colorScheme.onSurface),
                                 title: Text(a['label'] ?? 'Address',
                                     style: GoogleFonts.poppins(
                                         fontSize: 14, fontWeight: FontWeight.bold)),

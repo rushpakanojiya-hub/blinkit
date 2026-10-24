@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import '../../widgets/delivery_rating_card.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -7,8 +8,10 @@ import '../../providers/order_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../models/order_model.dart';
 import '../../widgets/state_views.dart';
+import '../../widgets/complaint_window_card.dart';
 import '../../utils/invoice_generator.dart';
 import 'request_return_screen.dart';
+import '../../services/api_service.dart';
 
 const Color kGreen = Color(0xFF0C831F);
 
@@ -24,6 +27,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   bool _loading = true;
   String? _error;
   bool _isGeneratingInvoice = false;
+  Map<String, dynamic>? _myReturn;
+  bool? _windowOpen; // null until the return/complaint window is known
 
   Future<void> _downloadInvoice(Order order) async {
     if (_isGeneratingInvoice) return;
@@ -59,6 +64,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   void initState() {
     super.initState();
     _load();
+    _loadReturnStatus();
   }
 
   Future<void> _load() async {
@@ -68,16 +74,43 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     });
     try {
       final order = await context.read<OrderProvider>().fetchDetails(widget.orderId);
+      if (!mounted) return;
       setState(() {
         _order = order;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Could not load order details';
         _loading = false;
       });
     }
+  }
+
+  Future<void> _loadReturnStatus() async {
+    try {
+      final returns = await ApiService.getMyReturns();
+      Map<String, dynamic>? match;
+      for (final r in returns) {
+        final m = r as Map<String, dynamic>;
+        if (m['order_id']?.toString() == widget.orderId) {
+          match = m;
+          break;
+        }
+      }
+      if (mounted) setState(() => _myReturn = match);
+    } catch (_) {
+      // ignore; button just won't be hidden if this fails
+    }
+  }
+
+  String _returnSummary() {
+    final r = _myReturn;
+    if (r == null) return '';
+    final reason = r['reason']?.toString() ?? '-';
+    final status = r['status']?.toString() ?? '-';
+    return 'Reason: $reason - Status: $status';
   }
 
   @override
@@ -155,12 +188,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       children: [
                         Text(item.name,
                             style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-                        Text('${item.unit} Ãƒâ€” ${item.quantity}',
+                        Text('${item.unit} \u00D7 ${item.quantity}',
                             style: GoogleFonts.poppins(fontSize: 11, color: scheme.onSurface.withValues(alpha: 0.6))),
                       ],
                     ),
                   ),
-                  Text('${item.price * item.quantity}',
+                  Text('\u20B9${item.price * item.quantity}',
                       style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: scheme.onSurface)),
                 ],
               ),
@@ -225,13 +258,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         Text('Price Breakdown',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15, color: scheme.onSurface)),
         const SizedBox(height: 10),
-        _priceRow('Item Total', '${order.itemTotal}', scheme),
-        _priceRow('Delivery Fee', '${order.deliveryFee}', scheme),
-        _priceRow('Platform Fee', '${order.platformFee}', scheme),
-        if (order.discount > 0) _priceRow('Discount', '-${order.discount}', scheme, isDiscount: true),
+        _priceRow('Item Total', '\u20B9${order.itemTotal}', scheme),
+        _priceRow('Delivery Fee', '\u20B9${order.deliveryFee}', scheme),
+        _priceRow('Platform Fee', '\u20B9${order.platformFee}', scheme),
+        if (order.discount > 0) _priceRow('Discount', '-\u20B9${order.discount}', scheme, isDiscount: true),
         const Divider(),
-        _priceRow('Grand Total', '${order.grandTotal}', scheme, isBold: true),
-        if (order.paymentStatus == 'paid') ...[
+        _priceRow('Grand Total', '\u20B9${order.grandTotal}', scheme, isBold: true),
+        if (order.paymentStatus == 'paid' && order.rawStatus != 'cancelled') ...[
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -252,7 +285,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             ),
           ),
         ],
-        if (order.rawStatus == 'delivered') ...[
+        if (order.rawStatus == 'delivered') ...[DeliveryRatingCard(orderId: widget.orderId), const SizedBox(height: 12)],
+        ComplaintWindowCard(orderId: widget.orderId, onLoaded: (open) { if (mounted) setState(() => _windowOpen = open); }),
+        if (order.rawStatus == 'delivered' && _myReturn == null && _windowOpen != false) ...[
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -261,7 +296,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 final submitted = await Navigator.of(context).push<bool>(
                   MaterialPageRoute(builder: (_) => RequestReturnScreen(order: order)),
                 );
-                if (submitted == true) _load();
+                if (submitted == true) {
+                  _load();
+                  _loadReturnStatus();
+                }
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red.shade700,
@@ -272,6 +310,34 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               icon: const Icon(Icons.assignment_return_outlined, size: 18),
               label: Text('Request Return',
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
+        if (order.rawStatus == 'delivered' && _myReturn != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.assignment_return_outlined, color: Colors.grey),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Return requested',
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                      Text(_returnSummary(),
+                          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -299,3 +365,4 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 }
+

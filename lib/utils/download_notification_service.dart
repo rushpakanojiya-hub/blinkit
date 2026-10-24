@@ -1,5 +1,5 @@
-﻿import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../services/push_notification_service.dart';
 
 /// Shows a native "Download complete" style notification after a file has
 /// been saved to the device, similar to how browsers/downloads managers
@@ -16,16 +16,11 @@ class DownloadNotificationService {
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+    const initSettings = InitializationSettings(android: androidSettings, iOS: DarwinInitializationSettings());
 
     await _plugin.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: (response) async {
-        final path = response.payload;
-        if (path != null && path.isNotEmpty) {
-          await SharePlus.instance.share(ShareParams(files: [XFile(path)], text: 'Invoice'));
-        }
-      },
+      onDidReceiveNotificationResponse: (response) => PushNotificationService.handleTap(response.payload),
     );
 
     const channel = AndroidNotificationChannel(
@@ -60,14 +55,14 @@ class DownloadNotificationService {
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
     );
-    const details = NotificationDetails(android: androidDetails);
+    const details = NotificationDetails(android: androidDetails, iOS: DarwinNotificationDetails());
 
     await _plugin.show(
       fileName.hashCode,
       'Download complete',
       fileName,
       details,
-      payload: filePath,
+      payload: 'file:$filePath',
     );
   }
 }

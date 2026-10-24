@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/validators/validators.dart';
 import '../../../../core/widgets/custom_text_field.dart';
 import '../providers/gift_card_provider.dart';
+import '../../../../providers/wallet_provider.dart';
 
 class RedeemGiftCardScreen extends StatefulWidget {
   const RedeemGiftCardScreen({super.key});
@@ -23,7 +24,10 @@ class _RedeemGiftCardScreenState extends State<RedeemGiftCardScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await context.read<GiftCardProvider>().redeemCard(_codeController.text);
+    final gp = context.read<GiftCardProvider>();
+    final wp = context.read<WalletProvider>();
+    await gp.redeemCard(_codeController.text);
+    if (gp.redeemStatus == RedeemStatus.success) wp.loadSummary(refresh: true);
   }
 
   @override
@@ -154,7 +158,7 @@ class _SuccessState extends StatelessWidget {
             Text('Gift card redeemed!', style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
-              '?,?${card.balance.toStringAsFixed(0)} has been added to your account from card ${card.cardNumber}.',
+              '\u20B9${card.balance.toStringAsFixed(0)} has been added to your account from card ${card.cardNumber}.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),

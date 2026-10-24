@@ -9,6 +9,14 @@ class ProductProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  void clear() {
+    _products = [];
+    _productsByCategory = {};
+    _isLoading = false;
+    _error = null;
+    notifyListeners();
+  }
+
   List<Map<String, dynamic>> get products => _products;
   Map<String, List<Map<String, dynamic>>> get productsByCategory => _productsByCategory;
   bool get isLoading => _isLoading;
@@ -40,6 +48,24 @@ class ProductProvider extends ChangeNotifier {
     'Wafers': 'Chips',
   };
 
+  // Sample images sirf in products par lagti hain (image product se match karti hai).
+  // Naya sahi product mile to uska naam (lowercase) yahan add karo.
+  static const Set<String> _verifiedFallbackNames = {
+    'bread', 'farm eggs', 'amul milk', 'ghee',
+    'diapers', 'baby food', 'baby lotion', 'baby wipes',
+  };
+
+  // Sample image sirf in products par lagti hai (screenshots mein match verify hua).
+  static const Set<String> _verifiedImageNames = {
+    'bread', 'farm eggs', 'amul milk', 'chicken curry cut', 'chicken breast',
+    'nescafe coffee', 'tata tea', 'sanitary pads', 'sunscreen spf50',
+    'face wash', 'supari', 'mints', 'menstrual cup', 'intimate wash',
+    'baby lotion', 'baby wipes', 'diapers', 'baby food', 'first aid kit',
+    'floor cleaner', 'sunflower oil', 'mustard oil', 'plastic container set',
+    'steel water bottle', 'dates', 'saunf', 'instant soup', 'horlicks',
+    'bournvita',
+  };
+
   static String get _imageHost => ApiService.baseUrl.replaceAll('/api/v1', '');
 
   String _resolveImage(dynamic imageUrl) {
@@ -57,11 +83,7 @@ class ProductProvider extends ChangeNotifier {
     final name = (raw['name'] ?? '').toString();
     final resolvedImage = _resolveImage(raw['image_url']);
     final id = raw['id'];
-    final image = resolvedImage.isNotEmpty
-        ? resolvedImage
-        : (CategoryMockData.imageForProductByCategoryTitle(
-                (_categoryAlias[categoryName] ?? categoryName), name, id is int ? id : 0) ??
-            '');
+    final image = resolvedImage.isNotEmpty ? resolvedImage : (_verifiedImageNames.contains(name.trim().toLowerCase()) ? (CategoryRepository().imageForBackendProduct(raw) ?? '') : '');
     final inventories = raw['inventories'];
     final computedInStock = raw.containsKey('nearest_in_stock')
         ? raw['nearest_in_stock'] == true

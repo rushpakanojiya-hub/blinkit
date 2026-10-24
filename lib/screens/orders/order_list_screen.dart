@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/order_provider.dart';
@@ -118,7 +118,7 @@ class _OrderTabState extends State<_OrderTab> {
         final status = provider.statusFor(widget.status);
         final orders = provider.ordersFor(widget.status);
 
-        if (status == LoadStatus.loading) return const LoadingView();
+        if (status == LoadStatus.loading || status == LoadStatus.initial) return const LoadingView();
         if (status == LoadStatus.error && orders.isEmpty) {
           return ErrorView(
             message: provider.errorFor(widget.status) ?? 'Something went wrong',

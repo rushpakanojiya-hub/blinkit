@@ -1,7 +1,6 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/location_service.dart';
 import '../services/nominatim_service.dart';
@@ -34,7 +33,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   static const _defaultCenter = LatLng(19.0760, 72.8777);
   static const _primaryGreen = Color(0xFF0C831F);
 
-  final MapController _mapController = MapController();
+  GoogleMapController? _mapController;
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -85,7 +84,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       _suggestions = [];
       _searchController.text = s.displayName;
     });
-    _mapController.move(_center, 16);
+    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(_center, 16));
     FocusScope.of(context).unfocus();
   }
 
@@ -96,10 +95,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     });
     try {
       final result = await LocationService.getCurrentLocation();
+      if (!mounted) return;
       final target = LatLng(result.latitude, result.longitude);
       setState(() => _center = target);
-      _mapController.move(target, 16);
+      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(target, 16));
     } catch (e) {
+      if (!mounted) return;
       if (!recenterOnly) {
         setState(() {
           _errorText = e.toString().replaceFirst('Exception: ', '');
@@ -132,28 +133,13 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _center,
-              initialZoom: 15,
-              onPositionChanged: (MapCamera camera, bool hasGesture) {
-                if (hasGesture) {
-                  _center = camera.center;
-                }
-              },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.mepto_clone',
-              ),
-              RichAttributionWidget(
-                attributions: [
-                  TextSourceAttribution('\u00a9 OpenStreetMap contributors'),
-                ],
-              ),
-            ],
+          GoogleMap(
+            initialCameraPosition: CameraPosition(target: _center, zoom: 15),
+            onMapCreated: (controller) => _mapController = controller,
+            onCameraMove: (position) => _center = position.target,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
           ),
           const IgnorePointer(
             child: Center(

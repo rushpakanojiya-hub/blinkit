@@ -94,7 +94,7 @@ class GiftCardTile extends StatelessWidget {
                   children: [
                     Text('Balance', style: theme.textTheme.bodyMedium),
                     Text(
-                      '?,?${card.balance.toStringAsFixed(0)}',
+                      '\u20B9${card.balance.toStringAsFixed(0)}',
                       style: theme.textTheme.titleLarge,
                     ),
                   ],

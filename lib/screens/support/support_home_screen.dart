@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/support_provider.dart';
 import '../../widgets/state_views.dart';
+import 'chat_support_screen.dart';
 
 const Color kGreen = Color(0xFF0C831F);
 
@@ -38,16 +39,10 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _optionTile(scheme, Icons.chat_bubble_outline, 'Chat Support', () async {
-            final uri = Uri.parse(
-                'https://wa.me/918104090442?text=${Uri.encodeComponent('Hi, I am facing an issue with a product I ordered. ')}');
-            if (await canLaunchUrl(uri)) {
-              launchUrl(uri, mode: LaunchMode.externalApplication);
-            } else if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Could not open WhatsApp')),
-              );
-            }
+          _optionTile(scheme, Icons.chat_bubble_outline, 'Chat Support', () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ChatSupportScreen()),
+            );
           }),
           _optionTile(scheme, Icons.call_outlined, 'Call Support', () async {
             final uri = Uri(scheme: 'tel', path: '18001234567');

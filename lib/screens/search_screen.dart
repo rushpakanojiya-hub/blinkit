@@ -1,9 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import '../utils/cart_safe.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/product_provider.dart';
+import 'product_detail_screen.dart';
 
 enum SortOption { relevance, priceLowHigh, priceHighLow, nameAZ }
 
@@ -23,7 +25,8 @@ extension SortOptionLabel on SortOption {
 }
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final String? initialQuery;
+  const SearchScreen({super.key, this.initialQuery});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -33,19 +36,35 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
   String _query = '';
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      _query = widget.initialQuery!;
+      _controller.text = widget.initialQuery!;
+    }
+  }
+
   List<Map<String, dynamic>> get _allProducts => context.watch<ProductProvider>().products;
-
-
 
   String? _selectedCategory;
   SortOption _sortOption = SortOption.relevance;
 
-  List<Map<String, dynamic>> get _searchMatches => _query.isEmpty
-      ? []
-      : _allProducts.where((p) =>
-  p['name'].toString().toLowerCase().contains(_query.toLowerCase()) ||
-      p['category'].toString().toLowerCase().contains(_query.toLowerCase())
-  ).toList();
+  List<Map<String, dynamic>> get _searchMatches {
+    if (_query.isEmpty) return [];
+    final q = _query.toLowerCase().trim();
+
+    // Exact category match (e.g. "Chips") shows only that category.
+    final categoryMatches = _allProducts
+        .where((p) => p['category'].toString().toLowerCase() == q)
+        .toList();
+    if (categoryMatches.isNotEmpty) return categoryMatches;
+
+    return _allProducts.where((p) =>
+        p['name'].toString().toLowerCase().contains(q) ||
+        p['category'].toString().toLowerCase().contains(q)
+    ).toList();
+  }
 
   List<String> get _matchingCategories {
     final cats = _searchMatches
@@ -68,10 +87,10 @@ class _SearchScreenState extends State<SearchScreen> {
     results = List<Map<String, dynamic>>.from(results);
     switch (_sortOption) {
       case SortOption.priceLowHigh:
-        results.sort((a, b) => (a['price'] as num).compareTo(b['price'] as num));
+        results.sort((a, b) => ((a['price'] as num?) ?? 0).compareTo((b['price'] as num?) ?? 0));
         break;
       case SortOption.priceHighLow:
-        results.sort((a, b) => (b['price'] as num).compareTo(a['price'] as num));
+        results.sort((a, b) => ((b['price'] as num?) ?? 0).compareTo((a['price'] as num?) ?? 0));
         break;
       case SortOption.nameAZ:
         results.sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
@@ -116,11 +135,11 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
         title: TextField(
           controller: _controller,
           autofocus: true,
@@ -128,14 +147,14 @@ class _SearchScreenState extends State<SearchScreen> {
             _query = val;
             _selectedCategory = null;
           }),
-          style: GoogleFonts.poppins(color: Colors.black87),
+          style: GoogleFonts.poppins(color: Theme.of(context).colorScheme.onSurface),
           decoration: InputDecoration(
             hintText: 'Search groceries...',
             hintStyle: GoogleFonts.poppins(color: Colors.grey),
             border: InputBorder.none,
             suffixIcon: _query.isNotEmpty
                 ? IconButton(
-              icon: const Icon(Icons.clear, color: Colors.black87),
+              icon: Icon(Icons.clear, color: Theme.of(context).colorScheme.onSurface),
               onPressed: () {
                 _controller.clear();
                 setState(() {
@@ -163,7 +182,7 @@ class _SearchScreenState extends State<SearchScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Popular Searches',
-              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8, runSpacing: 8,
@@ -188,7 +207,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     children: [
                       const Icon(Icons.search, size: 14, color: Colors.grey),
                       const SizedBox(width: 6),
-                      Text(item, style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87)),
+                      Text(item, style: GoogleFonts.poppins(fontSize: 13, color: Theme.of(context).colorScheme.onSurface)),
                     ],
                   ),
                 ),
@@ -269,7 +288,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     selectedColor: const Color(0xFFEAF7EA),
                     labelStyle: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: _selectedCategory == null ? const Color(0xFF0C831F) : Colors.black87,
+                        color: _selectedCategory == null ? const Color(0xFF0C831F) : Theme.of(context).colorScheme.onSurface,
                         fontWeight: _selectedCategory == null ? FontWeight.bold : FontWeight.normal),
                     onSelected: (_) => setState(() => _selectedCategory = null),
                   ),
@@ -281,7 +300,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       selectedColor: const Color(0xFFEAF7EA),
                       labelStyle: GoogleFonts.poppins(
                           fontSize: 12,
-                          color: _selectedCategory == cat ? const Color(0xFF0C831F) : Colors.black87,
+                          color: _selectedCategory == cat ? const Color(0xFF0C831F) : Theme.of(context).colorScheme.onSurface,
                           fontWeight: _selectedCategory == cat ? FontWeight.bold : FontWeight.normal),
                       onSelected: (_) => setState(() => _selectedCategory = cat),
                     ),
@@ -302,9 +321,9 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.sort, size: 16, color: Colors.black87),
+                  Icon(Icons.sort, size: 16, color: Theme.of(context).colorScheme.onSurface),
                   const SizedBox(width: 4),
-                  Text('Sort', style: GoogleFonts.poppins(fontSize: 12, color: Colors.black87)),
+                  Text('Sort', style: GoogleFonts.poppins(fontSize: 12, color: Theme.of(context).colorScheme.onSurface)),
                 ],
               ),
             ),
@@ -337,7 +356,17 @@ class _SearchScreenState extends State<SearchScreen> {
       itemBuilder: (context, index) {
         final product = _filtered[index];
         final qty = cart.getQuantityByProductId(product['id']);
-        return Container(
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(
+                product: product,
+                allProducts: _allProducts,
+              ),
+            ),
+          ),
+          child: Container(
           decoration: BoxDecoration(
               color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -356,7 +385,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(product['name'],
-                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
+                        style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     Text(product['unit'],
                         style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey)),
@@ -364,13 +393,13 @@ class _SearchScreenState extends State<SearchScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('â‚¹${product['price']}',
+                        Text('\u20B9${product['price']}',
                             style: GoogleFonts.poppins(
                                 fontSize: 14, fontWeight: FontWeight.bold,
                                 color: const Color(0xFF0C831F))),
                         qty == 0
                             ? GestureDetector(
-                          onTap: () => context.read<CartProvider>().increment(product['id'], productData: product),
+                          onTap: () => context.read<CartProvider>().safeIncrement(context, product['id'], productData: product),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
@@ -384,7 +413,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             : Row(
                           children: [
                             GestureDetector(
-                              onTap: () => context.read<CartProvider>().decrement(product['id']),
+                              onTap: () => context.read<CartProvider>().safeDecrement(context, product['id']),
                               child: Container(
                                   width: 24, height: 24,
                                   decoration: BoxDecoration(
@@ -395,9 +424,9 @@ class _SearchScreenState extends State<SearchScreen> {
                             Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 6),
                                 child: Text('$qty',
-                                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87))),
+                                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface))),
                             GestureDetector(
-                              onTap: () => context.read<CartProvider>().increment(product['id'], productData: product),
+                              onTap: () => context.read<CartProvider>().safeIncrement(context, product['id'], productData: product),
                               child: Container(
                                   width: 24, height: 24,
                                   decoration: BoxDecoration(
@@ -413,6 +442,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
             ],
+          ),
           ),
         );
       },

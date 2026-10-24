@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../data/models/user_profile_model.dart';
 import '../data/repositories/profile_repository.dart';
 
@@ -11,6 +11,14 @@ class ProfileProvider extends ChangeNotifier {
   ProfileStatus status = ProfileStatus.idle;
   String? errorMessage;
   String? pendingAvatarId;
+
+  void clear() {
+    profile = null;
+    pendingAvatarId = null;
+    errorMessage = null;
+    status = ProfileStatus.idle;
+    notifyListeners();
+  }
 
   Future<void> load() async {
     status = ProfileStatus.loading;

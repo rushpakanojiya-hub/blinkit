@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class EarningsScreen extends StatefulWidget {
@@ -26,11 +26,13 @@ class _EarningsScreenState extends State<EarningsScreen> {
     });
     try {
       final data = await ApiService.getEarnings();
+      if (!mounted) return;
       setState(() {
         _data = data;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Failed to load earnings';
         _loading = false;
@@ -91,7 +93,7 @@ class _EarningsScreenState extends State<EarningsScreen> {
                             child: ListTile(
                               leading: const Icon(Icons.check_circle, color: Colors.green),
                               title: Text('Order #${entry['order_id']}'),
-                              subtitle: Text(entry['delivered_at'].toString().substring(0, 16).replaceFirst('T', ' ')),
+                              subtitle: Text((entry['delivered_at'] ?? '').toString().padRight(16).substring(0, 16).trim().replaceFirst('T', ' ')),
                               trailing: Text(
                                 '+₹${entry['amount']}',
                                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
@@ -135,7 +137,7 @@ class _SummaryCard extends StatelessWidget {
               style: TextStyle(color: color, fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+            Text(subtitle, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 12)),
           ],
         ),
       ),

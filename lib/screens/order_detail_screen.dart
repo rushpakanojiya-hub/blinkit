@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class OrderDetailScreen extends StatefulWidget {
@@ -27,11 +27,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     });
     try {
       final data = await ApiService.markShipped(_order['id']);
+      if (!mounted) return;
       setState(() {
         _order = data['order'];
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString().replaceFirst('Exception: ', '');
         _loading = false;
@@ -46,11 +48,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     });
     try {
       final data = await ApiService.confirmDelivery(_order['id']);
+      if (!mounted) return;
       setState(() {
         _order = data['order'];
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString().replaceFirst('Exception: ', '');
         _loading = false;

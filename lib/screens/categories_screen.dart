@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../features/category_nav/data/category_mock_data.dart';
@@ -7,6 +7,7 @@ import '../features/category_nav/providers/category_nav_provider.dart';
 import '../features/category_nav/widgets/category_placeholder_image.dart';
 import '../features/category_nav/widgets/product_card.dart';
 import '../features/category_nav/widgets/skeleton_grid.dart';
+import '../features/category_nav/widgets/subcategory_chips.dart';
 import '../features/category_nav/screens/product_details_screen.dart';
 import '../services/api_service.dart';
 import 'home_screen.dart';
@@ -210,7 +211,17 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               ),
             ),
             Expanded(
-              child: _buildBody(context, provider, products),
+              child: Column(
+                children: [
+                  SubcategoryChips(
+                    subCategories: provider.subCategories,
+                    selected: provider.activeSubCategory,
+                    onSelected: (sub) => provider.selectSubCategory(sub),
+                  ),
+                  const SizedBox(height: 6),
+                  Expanded(child: _buildBody(context, provider, products)),
+                ],
+              ),
             ),
           ],
         ),

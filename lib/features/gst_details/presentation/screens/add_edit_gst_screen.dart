@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -73,7 +73,7 @@ class _AddEditGstScreenState extends State<AddEditGstScreen> {
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not save GST details. Please try again.')),
+        SnackBar(content: Text(provider.errorMessage ?? 'Could not save GST details. Please try again.')),
       );
     }
   }
