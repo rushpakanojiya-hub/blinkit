@@ -143,18 +143,24 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
 
   void _countdown() {
     if (!mounted) return;
-    // Don't start ticking down the ETA until the order has actually been
-    // confirmed - while it's still 'pending' there's no confirmed delivery
-    // window yet, so the countdown just re-checks every second without
-    // decrementing.
-    if (_order.rawStatus == 'pending' || !_isPartnerAccepted()) {
+    final raw = _order.rawStatus;
+    // Nothing to count down for finished orders.
+    if (const {
+      'delivered',
+      'cancelled',
+      'refunded',
+      'failed',
+      'returned',
+    }.contains(raw))
+      return;
+    if (raw == 'pending' || !_isPartnerAccepted()) {
       Future.delayed(const Duration(seconds: 1), _countdown);
       return;
     }
-    if (_minutes > 0) {
-      setState(() => _minutes--);
-      Future.delayed(const Duration(minutes: 1), _countdown);
-    }
+    final elapsed = DateTime.now().difference(_order.date).inMinutes;
+    final left = (10 - elapsed).clamp(0, 10).toInt();
+    if (left != _minutes) setState(() => _minutes = left);
+    if (left > 0) Future.delayed(const Duration(seconds: 30), _countdown);
   }
 
   // Product images can come back from the backend as a relative path
