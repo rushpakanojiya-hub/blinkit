@@ -28,7 +28,6 @@ import 'about/about_us_screen.dart';
 import '../features/wishlist/presentation/screens/wishlist_screen.dart';
 import '../features/gst_details/presentation/screens/gst_list_screen.dart';
 import 'categories_screen.dart';
-import 'profile/edit_profile_screen.dart';
 import 'settings/notification_preferences_screen.dart';
 import '../features/address_book/presentation/screens/address_list_screen.dart';
 import '../features/gift_cards/presentation/screens/gift_cards_screen.dart';
@@ -86,11 +85,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final name = (profile?.name.trim().isNotEmpty ?? false)
         ? profile!.name
         : 'User';
-    final phone = _loginPhone.isEmpty
-        ? ''
-        : ((profile?.phone.trim().isNotEmpty ?? false)
-              ? profile!.phone.trim()
-              : _loginPhone);
+    final phone = _loginPhone;
+
     final scheme = Theme.of(context).colorScheme;
 
     return PopScope(
@@ -147,16 +143,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                     scheme,
                   ),
-                  _tile(Icons.person_outline, 'Edit profile', () {
-                    _guarded(
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const EditProfileScreen(),
-                        ),
-                      ),
-                    );
-                  }, scheme),
                   _tile(Icons.location_on_outlined, 'Saved addresses', () {
                     _guarded(
                       () => Navigator.push(
@@ -431,26 +417,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          AvatarDisplay(avatarId: avatarId, fallbackName: name, radius: 42),
-          const SizedBox(height: 12),
-          Text(
-            name,
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: scheme.onSurface,
-            ),
+          CircleAvatar(
+            radius: 42,
+            backgroundColor: scheme.surfaceContainerHighest,
+            child: Icon(Icons.person, size: 44, color: scheme.onSurface),
           ),
-          if (phone.isNotEmpty) ...[
-            const SizedBox(height: 4),
+          const SizedBox(height: 12),
+          if (phone.isNotEmpty)
             Text(
               '+91 $phone',
               style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: scheme.onSurface.withValues(alpha: 0.6),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: scheme.onSurface,
               ),
             ),
-          ],
         ],
       ),
     );
