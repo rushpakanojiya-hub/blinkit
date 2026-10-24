@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../features/wishlist/presentation/providers/wishlist_provider.dart';
+import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/location_service.dart';
 import 'login_screen.dart';
@@ -27,6 +29,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     super.initState();
     _loadOrders();
     _loadOnlineStatus();
+    LocationService.startTracking();
   }
 
   Future<void> _loadOrders() async {
@@ -36,11 +39,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
     });
     try {
       final orders = await ApiService.getMyDeliveries();
+      if (!mounted) return;
       setState(() {
         _orders = orders;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Failed to load orders';
         _loading = false;
@@ -93,13 +98,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
         _statusError = 'Failed to update status';
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update status. Please try again.')),
+        const SnackBar(
+          content: Text('Could not update status. Please try again.'),
+        ),
       );
     }
   }
 
   Future<void> _logout() async {
     await ApiService.clearToken();
+    await ApiService.clearUserData();
+    if (mounted) context.read<WishlistProvider>().clear();
     LocationService.stopTracking();
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
@@ -146,14 +155,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(online ? 'Online' : 'Offline', style: const TextStyle(fontSize: 13)),
+        Text(
+          online ? 'Online' : 'Offline',
+          style: const TextStyle(fontSize: 13),
+        ),
         if (_statusUpdating)
           const Padding(
             padding: EdgeInsets.only(left: 8),
             child: SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
             ),
           )
         else
@@ -193,43 +208,49 @@ class _OrdersScreenState extends State<OrdersScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
-              : _orders.isEmpty
-                  ? const Center(child: Text('No orders assigned yet'))
-                  : RefreshIndicator(
-                      onRefresh: _loadOrders,
-                      child: ListView.builder(
-                        itemCount: _orders.length,
-                        itemBuilder: (context, index) {
-                          final order = _orders[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            child: ListTile(
-                              title: Text('Order #${order['id']}'),
-                              subtitle: Text(
-                                '${order['address']?['city'] ?? ''} • ₹${order['total_amount']} • ${order['payment_method']?.toString().toUpperCase() ?? ''}',
-                              ),
-                              trailing: Chip(
-                                label: Text(
-                                  order['status'] ?? '',
-                                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                                ),
-                                backgroundColor: _statusColor(order['status'] ?? ''),
-                              ),
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => OrderDetailScreen(order: order),
-                                  ),
-                                );
-                                _loadOrders();
-                              },
-                            ),
-                          );
-                        },
-                      ),
+          ? Center(child: Text(_error!))
+          : _orders.isEmpty
+          ? const Center(child: Text('No orders assigned yet'))
+          : RefreshIndicator(
+              onRefresh: _loadOrders,
+              child: ListView.builder(
+                itemCount: _orders.length,
+                itemBuilder: (context, index) {
+                  final order = _orders[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
                     ),
+                    child: ListTile(
+                      title: Text('Order #${order['id']}'),
+                      subtitle: Text(
+                        '${order['address']?['city'] ?? ''} • ₹${order['total_amount']} • ${order['payment_method']?.toString().toUpperCase() ?? ''}',
+                      ),
+                      trailing: Chip(
+                        label: Text(
+                          order['status'] ?? '',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        backgroundColor: _statusColor(order['status'] ?? ''),
+                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => OrderDetailScreen(order: order),
+                          ),
+                        );
+                        _loadOrders();
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

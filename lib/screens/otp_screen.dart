@@ -1,10 +1,15 @@
-﻿import 'dart:async';
+import '../features/wishlist/presentation/providers/wishlist_provider.dart';
+import '../providers/cart_provider.dart';
+import '../providers/settings_provider.dart';
+import 'package:provider/provider.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
+import '../services/push_notification_service.dart';
 
 const Color kBrandGreen = Color(0xFF0C831F);
 
@@ -20,7 +25,10 @@ class OtpScreen extends StatefulWidget {
 }
 
 class _OtpScreenState extends State<OtpScreen> {
-  final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
+  final List<TextEditingController> _controllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   Timer? _timer;
   int _secondsLeft = 30;
@@ -32,7 +40,8 @@ class _OtpScreenState extends State<OtpScreen> {
     super.initState();
     _startTimer();
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted && widget.testOtp == null) setState(() => _showSmsBanner = false);
+      if (mounted && widget.testOtp == null)
+        setState(() => _showSmsBanner = false);
     });
     // TEST MODE ONLY: auto-fill and auto-verify using the OTP the backend
     // returned directly (no real SMS). Remove once a real SMS provider is
@@ -82,11 +91,22 @@ class _OtpScreenState extends State<OtpScreen> {
       final data = await ApiService.verifyOTP(widget.phone, _otp);
       if (data['token'] != null) {
         final prefs = await SharedPreferences.getInstance();
+        final prevPhone = prefs.getString('user_phone');
+        if (prevPhone != widget.phone && mounted) {
+          context.read<WishlistProvider>().clear();
+        }
         await prefs.setString('user_phone', widget.phone);
+        PushNotificationService.initialize();
+        PushNotificationService.registerCurrentToken();
         if (mounted) {
+          context.read<SettingsProvider>().load();
+          await context.read<CartProvider>().syncLocalCartToServer();
+          if (!mounted) return;
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (_) => const HomeScreen(showWishlistIntro: true)),
+            MaterialPageRoute(
+              builder: (_) => const HomeScreen(showWishlistIntro: true),
+            ),
             (route) => false,
           );
         }
@@ -94,16 +114,18 @@ class _OtpScreenState extends State<OtpScreen> {
         setState(() => _isVerifying = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['error']?.toString() ?? 'OTP verify fail hua')),
+            SnackBar(
+              content: Text(data['error']?.toString() ?? 'OTP verify fail hua'),
+            ),
           );
         }
       }
     } catch (e) {
       setState(() => _isVerifying = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -124,16 +146,25 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('OTP verification',
-            style: GoogleFonts.poppins(color: Colors.black87, fontWeight: FontWeight.w700, fontSize: 17)),
+        title: Text(
+          'OTP verification',
+          style: GoogleFonts.poppins(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+            fontSize: 17,
+          ),
+        ),
       ),
       body: Stack(
         children: [
@@ -145,11 +176,18 @@ class _OtpScreenState extends State<OtpScreen> {
                 Text.rich(
                   TextSpan(
                     text: "We've sent a verification code to\n",
-                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey[700]),
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                    ),
                     children: [
                       TextSpan(
                         text: '+91 ${widget.phone}',
-                        style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black87),
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                     ],
                   ),
@@ -170,8 +208,13 @@ class _OtpScreenState extends State<OtpScreen> {
                           textAlign: TextAlign.center,
                           keyboardType: TextInputType.number,
                           maxLength: 1,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          style: GoogleFonts.poppins(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
                           decoration: InputDecoration(
                             counterText: '',
                             filled: true,
@@ -182,7 +225,10 @@ class _OtpScreenState extends State<OtpScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: kBrandGreen, width: 2),
+                              borderSide: const BorderSide(
+                                color: kBrandGreen,
+                                width: 2,
+                              ),
                             ),
                           ),
                           onChanged: (v) => _onDigitChanged(i, v),
@@ -193,16 +239,30 @@ class _OtpScreenState extends State<OtpScreen> {
                 ),
                 const SizedBox(height: 20),
                 _secondsLeft > 0
-                    ? Text('Resend OTP in $_secondsLeft',
-                        style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[600]))
+                    ? Text(
+                        'Resend OTP in $_secondsLeft',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      )
                     : TextButton(
                         onPressed: _startTimer,
-                        child: Text('Resend OTP',
-                            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w700, color: kBrandGreen)),
+                        child: Text(
+                          'Resend OTP',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: kBrandGreen,
+                          ),
+                        ),
                       ),
                 if (_isVerifying) ...[
                   const SizedBox(height: 24),
-                  const CircularProgressIndicator(color: kBrandGreen, strokeWidth: 2),
+                  const CircularProgressIndicator(
+                    color: kBrandGreen,
+                    strokeWidth: 2,
+                  ),
                 ],
               ],
             ),
@@ -214,13 +274,22 @@ class _OtpScreenState extends State<OtpScreen> {
               bottom: 30,
               child: SafeArea(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange.shade700,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text('TEST MODE -- OTP: ${widget.testOtp} (auto-filled)',
-                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    'TEST MODE -- OTP: ${widget.testOtp} (auto-filled)',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             )
@@ -231,13 +300,22 @@ class _OtpScreenState extends State<OtpScreen> {
               bottom: 30,
               child: SafeArea(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF2E2E2E),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text('We have sent a verification code to you via SMS',
-                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    'We have sent a verification code to you via SMS',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ),
