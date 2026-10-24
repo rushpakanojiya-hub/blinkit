@@ -25,6 +25,7 @@ class CategoryProductScreen extends StatefulWidget {
 class _CategoryProductScreenState extends State<CategoryProductScreen> {
   static const _pageSize = 8;
   int _visibleCount = _pageSize;
+  String? _filterSig;
 
   @override
   void initState() {
@@ -54,7 +55,11 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
           height: height,
           width: height,
           color: Colors.grey[200],
-          child: const Icon(Icons.image_not_supported, color: Colors.grey, size: 16),
+          child: const Icon(
+            Icons.image_not_supported,
+            color: Colors.grey,
+            size: 16,
+          ),
         ),
       );
     } else {
@@ -67,7 +72,11 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
           height: height,
           width: height,
           color: Colors.grey[200],
-          child: const Icon(Icons.image_not_supported, color: Colors.grey, size: 16),
+          child: const Icon(
+            Icons.image_not_supported,
+            color: Colors.grey,
+            size: 16,
+          ),
         ),
       );
     }
@@ -95,9 +104,7 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
                   color: Colors.white,
                   border: Border.all(color: Colors.white, width: 2),
                 ),
-                child: ClipOval(
-                  child: _buildThumbImage(images[i], height: 40),
-                ),
+                child: ClipOval(child: _buildThumbImage(images[i], height: 40)),
               ),
             ),
         ],
@@ -109,6 +116,13 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<CategoryNavProvider>();
     final category = widget.category;
+    // BUG-19: restart pagination when search, sort or stock filter changes
+    final filterSig =
+        '${provider.query}|${provider.sort}|${provider.inStockOnly}';
+    if (_filterSig != filterSig) {
+      _filterSig = filterSig;
+      _visibleCount = _pageSize;
+    }
     final allVisible = provider.visibleProducts;
     final shown = allVisible.take(_visibleCount).toList();
     final cart = context.watch<CartProvider>();
@@ -131,7 +145,15 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
               },
             ),
             const SizedBox(height: 6),
-            Expanded(child: _buildBody(context, provider, shown, allVisible.length, cart.cartCount > 0)),
+            Expanded(
+              child: _buildBody(
+                context,
+                provider,
+                shown,
+                allVisible.length,
+                cart.cartCount > 0,
+              ),
+            ),
           ],
         ),
       ),
@@ -142,8 +164,10 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(40),
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const CartScreen())),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  ),
                   child: Container(
                     height: 60,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -151,7 +175,11 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
                       color: const Color(0xFF0C831F),
                       borderRadius: BorderRadius.circular(40),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 10, offset: const Offset(0, 4)),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
                       ],
                     ),
                     child: Row(
@@ -163,14 +191,29 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('View cart',
-                                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                            Text('${cart.cartCount} item${cart.cartCount > 1 ? 's' : ''}',
-                                style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11)),
+                            Text(
+                              'View cart',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            Text(
+                              '${cart.cartCount} item${cart.cartCount > 1 ? 's' : ''}',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(width: 18),
-                        const Icon(Icons.chevron_right, color: Colors.white, size: 22),
+                        const Icon(
+                          Icons.chevron_right,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ],
                     ),
                   ),
@@ -201,28 +244,47 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
                     height: 44,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => CategoryPlaceholderImage(
-                        icon: category.icon, color: category.color, size: 44, borderRadius: 12),
+                      icon: category.icon,
+                      color: category.color,
+                      size: 44,
+                      borderRadius: 12,
+                    ),
                   )
                 : CategoryPlaceholderImage(
-                    icon: category.icon, color: category.color, size: 44, borderRadius: 12),
+                    icon: category.icon,
+                    color: category.color,
+                    size: 44,
+                    borderRadius: 12,
+                  ),
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(category.title,
-                style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.bold),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis),
+            child: Text(
+              category.title,
+              style: GoogleFonts.poppins(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, CategoryNavProvider provider,
-      List shownRaw, int totalCount, bool hasCartBar) {
+  Widget _buildBody(
+    BuildContext context,
+    CategoryNavProvider provider,
+    List shownRaw,
+    int totalCount,
+    bool hasCartBar,
+  ) {
     final shown = shownRaw.cast<ProductModel>();
 
-    if (provider.productStatus == LoadStatus.loading || provider.productStatus == LoadStatus.idle) {
+    if (provider.productStatus == LoadStatus.loading ||
+        provider.productStatus == LoadStatus.idle) {
       return const SkeletonGrid(itemCount: 6);
     }
 
@@ -234,7 +296,10 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
     }
 
     if (provider.productStatus == LoadStatus.empty || shown.isEmpty) {
-      return const EmptyView(icon: Icons.shopping_basket_outlined, message: 'No products found here.');
+      return const EmptyView(
+        icon: Icons.shopping_basket_outlined,
+        message: 'No products found here.',
+      );
     }
 
     return ListView(
@@ -255,7 +320,8 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
             final product = shown[index];
             return ProductCard(
               product: product,
-              onTap: () => CategoryNavRoutes.openProductDetails(context, product),
+              onTap: () =>
+                  CategoryNavRoutes.openProductDetails(context, product),
             );
           },
         ),
@@ -265,7 +331,10 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
             child: Center(
               child: OutlinedButton(
                 onPressed: () => setState(() => _visibleCount += _pageSize),
-                child: Text('Load more', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                child: Text(
+                  'Load more',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ),
@@ -273,5 +342,3 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
     );
   }
 }
-
-
