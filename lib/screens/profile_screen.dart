@@ -556,11 +556,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildSectionCard(ColorScheme scheme, List<Widget> tiles) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(20),
-        ),
+      // ERR-LISTTILE: Material (not Container color) so ListTile ink splashes are visible.
+      child: Material(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
         child: Column(children: tiles),
       ),
     );
