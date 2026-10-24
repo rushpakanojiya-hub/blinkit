@@ -623,7 +623,7 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${order.items.length} Item(s)',
+                            '${order.itemCount} Item(s)',
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
