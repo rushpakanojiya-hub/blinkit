@@ -209,7 +209,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                         ],
                       ),
                       constraints: const BoxConstraints(maxHeight: 240),
-                      child: ListView.separated(
+                      child: /* ERR-LISTTILE */ Material(color: Colors.transparent, child: ListView.separated(
                         shrinkWrap: true,
                         padding: EdgeInsets.zero,
                         itemCount: _suggestions.length,
@@ -230,6 +230,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                           );
                         },
                       ),
+),
                     ),
                 ],
               ),

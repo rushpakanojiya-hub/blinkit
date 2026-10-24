@@ -625,7 +625,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
           ),
 
           if (_suggestions.isNotEmpty)
-            Container(
+            /* ERR-LISTTILE */ Material(
               color: Colors.white,
               child: Column(
                 children: _suggestions.map((s) {
@@ -712,7 +712,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
             ),
           ),
 
-          Container(
+          /* ERR-LISTTILE */ Material(
             color: Colors.white,
             child: _loadingAddresses
                 ? const Padding(
