@@ -12,6 +12,7 @@ class WishlistProvider extends ChangeNotifier {
   String? errorMessage;
   List<WishlistItemEntity> items = [];
   final Set<String> pendingIds = {};
+  int _epoch = 0;
 
   WishlistProvider() {
     _restore();
@@ -50,10 +51,11 @@ class WishlistProvider extends ChangeNotifier {
   );
 
   Future<void> _restore() async {
+    final epoch = _epoch;
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_storageKey);
-      if (raw == null) return;
+      if (raw == null || epoch != _epoch) return;
       final stored = (jsonDecode(raw) as List)
           .map((e) => _fromMap(Map<String, dynamic>.from(e as Map)))
           .toList();
@@ -79,6 +81,7 @@ class WishlistProvider extends ChangeNotifier {
   }
 
   void clear() {
+    _epoch++;
     items = [];
     pendingIds.clear();
     errorMessage = null;
