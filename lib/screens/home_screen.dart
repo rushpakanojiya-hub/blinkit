@@ -1,3 +1,4 @@
+import '../utils/cart_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -9,6 +10,7 @@ import '../providers/cart_provider.dart';
 import '../providers/product_provider.dart';
 import '../features/category_nav/repositories/category_repository.dart';
 import 'select_location_screen.dart';
+import '../features/address_book/presentation/providers/address_provider.dart';
 import '../constants/asset_constants.dart';
 import 'cart_screen.dart';
 import 'search_screen.dart';
@@ -32,8 +34,19 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-  String _currentAddress = 'Mumbai, Maharashtra';
+  String _currentAddress = 'Select location';
   bool _loadingLocation = false;
+
+  String get _displayAddress {
+    if (_currentAddress != 'Select location') return _currentAddress;
+    final a = context.watch<AddressProvider>().defaultAddress;
+    if (a == null) return _currentAddress;
+    final parts = [
+      a.areaStreet,
+      a.city,
+    ].where((s) => s.trim().isNotEmpty).toList();
+    return parts.isEmpty ? _currentAddress : parts.join(', ');
+  }
 
   Future<void> _openSelectLocation() async {
     final result = await Navigator.push<Map<String, dynamic>>(
@@ -74,6 +87,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildImage(String imagePath, {double height = 110}) {
+    if (imagePath.isEmpty) {
+      return Container(
+        height: height,
+        width: double.infinity,
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_outlined, color: Colors.grey),
+      );
+    }
     if (imagePath.startsWith('assets/')) {
       return Image.asset(
         imagePath,
@@ -91,7 +112,10 @@ class _HomeScreenState extends State<HomeScreen> {
               errorBuilder: (context, error, stackTrace) => Container(
                 height: height,
                 color: Colors.grey[200],
-                child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                child: const Icon(
+                  Icons.image_not_supported,
+                  color: Colors.grey,
+                ),
               ),
             );
           }
@@ -133,152 +157,207 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF1B5E20),
-                    Color(0xFF1B5E20),
-                    Color(0xFF7CB342),
-                    Color(0xFFC5E1A5),
-                    Color(0xFFFFFFFF),
-                  ],
-                  stops: [0.0, 0.22, 0.45, 0.7, 1.0],
-                ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 8, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF1B5E20),
+                        Color(0xFF1B5E20),
+                        Color(0xFF7CB342),
+                        Color(0xFFC5E1A5),
+                        Color(0xFFFFFFFF),
+                      ],
+                      stops: [0.0, 0.22, 0.45, 0.7, 1.0],
+                    ),
+                  ),
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 8, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.bolt, color: Colors.white, size: 14),
-                                  Text('Delivery in 10 minutes',
-                                      style: GoogleFonts.poppins(
-                                          color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-                                ],
-                              ),
-                              GestureDetector(
-                                onTap: _loadingLocation ? null : _openSelectLocation,
-                                child: Row(
-                                children: [
-                                  const Icon(Icons.location_on, color: Colors.white, size: 14),
-                                  Flexible(child: Text(_loadingLocation ? 'Fetching...' : _currentAddress, overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.poppins(
-                                          color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
-                                  const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 16),
-                                ],
-                              ),
-                              ),
-                            ],
-                          ),
-                          ),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Stack(
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.shopping_cart, color: Colors.white),
-                                    onPressed: () => Navigator.push(
-                                        context, MaterialPageRoute(builder: (_) => const CartScreen())),
-                                  ),
-                                  if (cart.cartCount > 0)
-                                    Positioned(
-                                      right: 6,
-                                      top: 6,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: const BoxDecoration(
-                                            color: Color(0xFF0C831F), shape: BoxShape.circle),
-                                        child: Text('${cart.cartCount}',
-                                            style: const TextStyle(
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.bolt,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
+                                        Text(
+                                          'Delivery in 10 minutes',
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    GestureDetector(
+                                      onTap: _loadingLocation
+                                          ? null
+                                          : _openSelectLocation,
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.location_on,
+                                            color: Colors.white,
+                                            size: 14,
+                                          ),
+                                          Flexible(
+                                            child: Text(
+                                              _loadingLocation
+                                                  ? 'Fetching...'
+                                                  : _displayAddress,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.poppins(
                                                 color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold)),
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          const Icon(
+                                            Icons.keyboard_arrow_down,
+                                            color: Colors.white,
+                                            size: 16,
+                                          ),
+                                        ],
                                       ),
                                     ),
+                                  ],
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Stack(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.shopping_cart,
+                                          color: Colors.white,
+                                        ),
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => const CartScreen(),
+                                          ),
+                                        ),
+                                      ),
+                                      if (cart.cartCount > 0)
+                                        Positioned(
+                                          right: 6,
+                                          top: 6,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFF0C831F),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Text(
+                                              '${cart.cartCount}',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SearchScreen(),
+                              ),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.search, color: Colors.grey),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Search groceries, snacks...',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.grey,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                            context, MaterialPageRoute(builder: (_) => const SearchScreen())),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.search, color: Colors.grey),
-                              const SizedBox(width: 8),
-                              Text('Search groceries, snacks...',
-                                  style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14)),
-                            ],
-                          ),
-                        ),
+                    ),
+                  ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AspectRatio(
+                      aspectRatio: 1672 / 941,
+                      child: Image.asset(
+                        'assets/images/banners/promo_banner.png',
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) =>
+                            Container(color: Colors.grey[200]),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: AspectRatio(
-                  aspectRatio: 1672 / 941,
-                  child: Image.asset(
-                    'assets/images/banners/promo_banner.png',
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
+                const SizedBox(height: 16),
 
-            const SizedBox(height: 16),
+                const HomeCategorySections(),
 
-            const HomeCategorySections(),
+                _buildPromoBanner(),
 
-            _buildPromoBanner(),
+                _buildProductSection('Fresh Fruits', 'Fruits'),
+                _buildProductSection('Ice Creams', 'Ice Creams'),
+                _buildProductSection('Chocolate', 'Chocolate'),
 
-            _buildProductSection('Fresh Fruits', 'Fruits'),
-            _buildProductSection('Ice Creams', 'Ice Creams'),
-            _buildProductSection('Chocolate', 'Chocolate'),
+                _buildOffersSection(),
 
-            _buildOffersSection(),
+                _buildEventsSection(),
 
-            _buildEventsSection(),
+                _buildProductSection('Snacks', 'Snacks'),
+                _buildProductSection('Beverages', 'Beverages'),
+                _buildProductSection('Biscuits', 'Biscuits'),
+                _buildProductSection('Namkeen', 'Namkeen'),
+                _buildProductSection('Wafers', 'Wafers'),
+                _buildProductSection('Cold Drinks', 'Cold Drinks'),
+                _buildProductSection('Ketchup', 'Ketchup'),
 
-            _buildProductSection('Snacks', 'Snacks'),
-            _buildProductSection('Beverages', 'Beverages'),
-            _buildProductSection('Biscuits', 'Biscuits'),
-            _buildProductSection('Namkeen', 'Namkeen'),
-            _buildProductSection('Wafers', 'Wafers'),
-            _buildProductSection('Cold Drinks', 'Cold Drinks'),
-            _buildProductSection('Ketchup', 'Ketchup'),
-
-            _buildSlidingPromoSection(),
+                _buildSlidingPromoSection(),
               ],
             ),
           ),
@@ -288,15 +367,14 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-            _buildProductSection('Shampoo', 'Shampoo'),
-            _buildProductSection('Soap', 'Soap'),
-            _buildProductSection('Personal Care', 'Personal Care'),
-            _buildProductSection('Pickle', 'Pickle'),
-            _buildProductSection('Puja Items', 'Puja Items'),
-            _buildProductSection('Toys', 'Toys'),
-            _buildProductSection('Clothes', 'Clothes'),
-            const SizedBox(height: 80),
+                _buildProductSection('Shampoo', 'Shampoo'),
+                _buildProductSection('Soap', 'Soap'),
+                _buildProductSection('Personal Care', 'Personal Care'),
+                _buildProductSection('Pickle', 'Pickle'),
+                _buildProductSection('Puja Items', 'Puja Items'),
+                _buildProductSection('Toys', 'Toys'),
+                _buildProductSection('Clothes', 'Clothes'),
+                const SizedBox(height: 80),
               ],
             ),
           ),
@@ -310,13 +388,17 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() => _currentIndex = 0);
               break;
             case 1:
-              await Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const CategoriesScreen()));
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+              );
               if (mounted) setState(() => _currentIndex = 0);
               break;
             case 2:
-              await Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const ProfileScreen()));
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
               if (mounted) setState(() => _currentIndex = 0);
               break;
           }
@@ -324,12 +406,17 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedItemColor: const Color(0xFF0C831F),
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
-        selectedLabelStyle:
-        GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600),
+        selectedLabelStyle: GoogleFonts.poppins(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
         unselectedLabelStyle: GoogleFonts.poppins(fontSize: 11),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.category), label: 'Categories'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.category),
+            label: 'Categories',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
@@ -340,8 +427,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(40),
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const CartScreen())),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  ),
                   child: Container(
                     height: 60,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -365,20 +454,29 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('View cart',
-                                style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15)),
                             Text(
-                                '${cart.cartCount} item${cart.cartCount > 1 ? 's' : ''}',
-                                style: GoogleFonts.poppins(
-                                    color: Colors.white70, fontSize: 11)),
+                              'View cart',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            Text(
+                              '${cart.cartCount} item${cart.cartCount > 1 ? 's' : ''}',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(width: 18),
-                        const Icon(Icons.chevron_right,
-                            color: Colors.white, size: 22),
+                        const Icon(
+                          Icons.chevron_right,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ],
                     ),
                   ),
@@ -411,9 +509,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.white,
                   border: Border.all(color: Colors.white, width: 2),
                 ),
-                child: ClipOval(
-                  child: _buildImage(images[i], height: 40),
-                ),
+                child: ClipOval(child: _buildImage(images[i], height: 40)),
               ),
             ),
         ],
@@ -430,7 +526,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'bgColor': const Color(0xFFE8F5E9),
         'iconColor': const Color(0xFF43A047),
         'title': 'FREE DELIVERY',
-        'subtitle': 'Above Rs.199',
+        'subtitle': 'Above Rs.500',
       },
       {
         'icon': Icons.account_balance_wallet_rounded,
@@ -465,9 +561,13 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          child: Text('Coupons & Offers',
-              style: GoogleFonts.poppins(
-                  fontSize: 16, fontWeight: FontWeight.bold)),
+          child: Text(
+            'Coupons & Offers',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
         SizedBox(
           height: 130,
@@ -492,33 +592,49 @@ class _HomeScreenState extends State<HomeScreen> {
                       right: 0,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: offer['badgeColor'],
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(offer['badge'],
-                            style: GoogleFonts.poppins(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white)),
+                        child: Text(
+                          offer['badge'],
+                          style: GoogleFonts.poppins(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Icon(offer['icon'], color: offer['iconColor'], size: 26),
+                        Icon(
+                          offer['icon'],
+                          color: offer['iconColor'],
+                          size: 26,
+                        ),
                         const Spacer(),
-                        Text(offer['title'],
-                            style: GoogleFonts.poppins(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87)),
+                        Text(
+                          offer['title'],
+                          style: GoogleFonts.poppins(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text(offer['subtitle'],
-                            style: GoogleFonts.poppins(
-                                fontSize: 10.5, color: Colors.black54)),
+                        Text(
+                          offer['subtitle'],
+                          style: GoogleFonts.poppins(
+                            fontSize: 10.5,
+                            color: Colors.black54,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -560,15 +676,17 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     ];
 
-    Widget eventCard(Map<String, dynamic> event,
-        {double height = 96, double titleSize = 13, double subtitleSize = 10.5}) {
+    Widget eventCard(
+      Map<String, dynamic> event, {
+      double height = 96,
+      double titleSize = 13,
+      double subtitleSize = 10.5,
+    }) {
       return Container(
         height: height,
         margin: const EdgeInsets.only(bottom: 8),
         clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -592,17 +710,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 top: 8,
                 left: 8,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(event['badge'],
-                      style: GoogleFonts.poppins(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black)),
+                  child: Text(
+                    event['badge'],
+                    style: GoogleFonts.poppins(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
                 ),
               ),
             Positioned(
@@ -613,21 +736,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(event['title'],
+                  Text(
+                    event['title'],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (event['subtitle'] != null)
+                    Text(
+                      event['subtitle'],
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.poppins(
-                          fontSize: titleSize,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white)),
-                  if (event['subtitle'] != null)
-                    Text(event['subtitle'],
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                            fontSize: subtitleSize,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white70)),
+                        fontSize: subtitleSize,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -641,9 +770,13 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Events this week',
-              style:
-                  GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            'Events this week',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
           eventCard(events[0], height: 140, titleSize: 16, subtitleSize: 11.5),
           const SizedBox(height: 8),
@@ -670,7 +803,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return null;
   }
 
-  Widget _promoTile(String categoryId, String label, String imagePath, Color color) {
+  Widget _promoTile(
+    String categoryId,
+    String label,
+    String imagePath,
+    Color color,
+  ) {
     return GestureDetector(
       onTap: () {
         const categoryScreenMap = {
@@ -683,7 +821,9 @@ class _HomeScreenState extends State<HomeScreen> {
         if (target != null) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => CategoriesScreen(initialCategory: target)),
+            MaterialPageRoute(
+              builder: (_) => CategoriesScreen(initialCategory: target),
+            ),
           );
         }
       },
@@ -714,7 +854,11 @@ class _HomeScreenState extends State<HomeScreen> {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600),
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
           ),
         ],
@@ -739,13 +883,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Stock up your kitchen!',
-                        style: GoogleFonts.poppins(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Stock up your kitchen!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text('Fresh groceries, snacks & essentials, delivered fast',
-                        style: GoogleFonts.poppins(
-                            fontSize: 12, color: Colors.black54)),
+                    Text(
+                      'Fresh groceries, snacks & essentials, delivered fast',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -755,11 +908,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Icon(Icons.shopping_basket, size: 48, color: const Color(0xFF0C831F)),
+                    Icon(
+                      Icons.shopping_basket,
+                      size: 48,
+                      color: const Color(0xFF0C831F),
+                    ),
                     Positioned(
                       right: 0,
                       bottom: 0,
-                      child: Icon(Icons.local_grocery_store, size: 26, color: const Color(0xFFE0592A)),
+                      child: Icon(
+                        Icons.local_grocery_store,
+                        size: 26,
+                        color: const Color(0xFFE0592A),
+                      ),
                     ),
                   ],
                 ),
@@ -770,10 +931,30 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _promoTile('cat_veg_fruits', 'Fruits & Vegetables', AssetConstants.vegetablesFruits, const Color(0xFF3AA655)),
-              _promoTile('cat_dairy_bread_eggs', 'Dairy, Bread & Eggs', AssetConstants.dairyBreadEggs, const Color(0xFF2F8FD1)),
-              _promoTile('cat_chips_namkeen', 'Namkeen', AssetConstants.namkeen, const Color(0xFFE0A72A)),
-              _promoTile('cat_cleaners_repellents', 'Cleaners & Repellents', AssetConstants.cleanersRepellents, const Color(0xFF2F7FC1)),
+              _promoTile(
+                'cat_veg_fruits',
+                'Fruits & Vegetables',
+                AssetConstants.vegetablesFruits,
+                const Color(0xFF3AA655),
+              ),
+              _promoTile(
+                'cat_dairy_bread_eggs',
+                'Dairy, Bread & Eggs',
+                AssetConstants.dairyBreadEggs,
+                const Color(0xFF2F8FD1),
+              ),
+              _promoTile(
+                'cat_chips_namkeen',
+                'Namkeen',
+                AssetConstants.namkeen,
+                const Color(0xFFE0A72A),
+              ),
+              _promoTile(
+                'cat_cleaners_repellents',
+                'Cleaners & Repellents',
+                AssetConstants.cleanersRepellents,
+                const Color(0xFF2F7FC1),
+              ),
             ],
           ),
         ],
@@ -785,28 +966,32 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'title': 'Herbal Living',
       'subtitle': 'Support your everyday wellness with herbs',
-      'image': 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800',
+      'image':
+          'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800',
       'bgColor': Color(0xFFF3ECE0),
       'textColor': Colors.black,
     },
     {
       'title': 'Dark Cocoa Affair',
       'subtitle': 'Enjoy a bite of your favourite dark chocolate',
-      'image': 'https://images.unsplash.com/photo-1511381939415-e44015466834?w=800',
+      'image':
+          'https://images.unsplash.com/photo-1511381939415-e44015466834?w=800',
       'bgColor': Color(0xFF241208),
       'textColor': Colors.white,
     },
     {
       'title': '1 year of CeraVe on Blinkit!',
       'subtitle': 'Dermat recommended skincare routine',
-      'image': 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800',
+      'image':
+          'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800',
       'bgColor': Color(0xFF9DA3A6),
       'textColor': Colors.white,
     },
     {
       'title': 'Up to 70% OFF on bags',
       'subtitle': 'Get laptop bags, tote bags & more',
-      'image': 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800',
+      'image':
+          'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800',
       'bgColor': Color(0xFFEDE3C8),
       'textColor': Colors.black,
     },
@@ -856,18 +1041,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(promo['title'],
-                                style: GoogleFonts.poppins(
-                                    color: promo['textColor'],
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.bold)),
+                            Text(
+                              promo['title'],
+                              style: GoogleFonts.poppins(
+                                color: promo['textColor'],
+                                fontSize: 19,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const SizedBox(height: 6),
                             SizedBox(
                               width: 170,
-                              child: Text(promo['subtitle'],
-                                  style: GoogleFonts.poppins(
-                                      color: promo['textColor'].withOpacity(0.75),
-                                      fontSize: 12)),
+                              child: Text(
+                                promo['subtitle'],
+                                style: GoogleFonts.poppins(
+                                  color: promo['textColor'].withOpacity(0.75),
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -876,25 +1067,31 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const CategoriesScreen()),
+                                builder: (_) => const CategoriesScreen(),
+                              ),
                             );
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: promo['textColor'] == Colors.white
                                   ? Colors.white
                                   : Colors.black,
                               borderRadius: BorderRadius.circular(24),
                             ),
-                            child: Text('Shop now',
-                                style: GoogleFonts.poppins(
-                                    color: promo['textColor'] == Colors.white
-                                        ? Colors.black
-                                        : Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600)),
+                            child: Text(
+                              'Shop now',
+                              style: GoogleFonts.poppins(
+                                color: promo['textColor'] == Colors.white
+                                    ? Colors.black
+                                    : Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -915,8 +1112,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-        child: Text('Recommended for you',
-            style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold)),
+        child: Text(
+          'Recommended for you',
+          style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -933,126 +1132,207 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
         ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-              final product = products[index];
-              final cart = context.watch<CartProvider>();
-              final qty = cart.getQuantityByProductId(product['id']);
-              return GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product, allProducts: products))),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final product = products[index];
+          final cart = context.watch<CartProvider>();
+          final qty = cart.getQuantityByProductId(product['id']);
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProductDetailScreen(
+                  product: product,
+                  allProducts: products,
+                ),
+              ),
+            ),
 
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Stack(
                     children: [
-                      Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                            child: _buildImage(product['image'], height: 90),
-                          ),
-                          if (product['inStock'] == false)
-                            Positioned(
-                              top: 6,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.75),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  'Out of stock',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(14),
+                        ),
+                        child: _buildImage(product['image'], height: 90),
+                      ),
+                      if (product['inStock'] == false)
+                        Positioned(
+                          top: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.75),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Out of stock',
+                              style: GoogleFonts.poppins(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
                               ),
                             ),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 38, child: Text(product['name'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600))),
-                            const SizedBox(height: 4),
-                            Text('\u20b9${product['price']}',
-                                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 6),
-                            (product['inStock'] == false)
-                                ? GestureDetector(
-                                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('We will notify you'))),
-                                    child: Container(
-                                      width: double.infinity,
-                                      alignment: Alignment.center,
-                                      padding: const EdgeInsets.symmetric(vertical: 4),
-                                      decoration: BoxDecoration(
-                                          border: Border.all(color: const Color(0xFF0C831F)),
-                                          borderRadius: BorderRadius.circular(6)),
-                                      child: Text('Notify',
-                                          style: GoogleFonts.poppins(color: const Color(0xFF0C831F), fontSize: 11, fontWeight: FontWeight.bold)),
-                                    ),
-                                  )
-                                : qty == 0
-                                ? GestureDetector(
-                                    onTap: () => context.read<CartProvider>().increment(product['id'], productData: product),
-                                    child: Container(
-                                      width: double.infinity,
-                                      alignment: Alignment.center,
-                                      padding: const EdgeInsets.symmetric(vertical: 4),
-                                      decoration: BoxDecoration(
-                                          color: const Color(0xFF0C831F),
-                                          borderRadius: BorderRadius.circular(6)),
-                                      child: Text('ADD',
-                                          style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                                    ),
-                                  )
-                                : Container(
-                                    decoration: BoxDecoration(
-                                        color: const Color(0xFF0C831F),
-                                        borderRadius: BorderRadius.circular(6)),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () => context.read<CartProvider>().decrement(product['id']),
-                                          child: const Padding(
-                                            padding: EdgeInsets.all(4),
-                                            child: Icon(Icons.remove, color: Colors.white, size: 14),
-                                          ),
-                                        ),
-                                        Text('$qty',
-                                            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                                        GestureDetector(
-                                          onTap: () => context.read<CartProvider>().increment(product['id'], productData: product),
-                                          child: const Padding(
-                                            padding: EdgeInsets.all(4),
-                                            child: Icon(Icons.add, color: Colors.white, size: 14),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                          ],
+                          ),
                         ),
-                      ),
                     ],
                   ),
-                ),
-              );
-          },
-          childCount: products.length,
-        ),
+                  Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: 38,
+                          child: Text(
+                            product['name'] ?? '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '\u20b9${product['price']}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        (product['inStock'] == false)
+                            ? GestureDetector(
+                                onTap: () =>
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('We will notify you'),
+                                      ),
+                                    ),
+                                child: Container(
+                                  width: double.infinity,
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: const Color(0xFF0C831F),
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'Notify',
+                                    style: GoogleFonts.poppins(
+                                      color: const Color(0xFF0C831F),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : qty == 0
+                            ? GestureDetector(
+                                onTap: () =>
+                                    context.read<CartProvider>().safeIncrement(
+                                      context,
+                                      product['id'],
+                                      productData: product,
+                                    ),
+                                child: Container(
+                                  width: double.infinity,
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0C831F),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'ADD',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0C831F),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () => context
+                                          .read<CartProvider>()
+                                          .safeDecrement(
+                                            context,
+                                            product['id'],
+                                          ),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(4),
+                                        child: Icon(
+                                          Icons.remove,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '$qty',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => context
+                                          .read<CartProvider>()
+                                          .safeIncrement(
+                                            context,
+                                            product['id'],
+                                            productData: product,
+                                          ),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(4),
+                                        child: Icon(
+                                          Icons.add,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }, childCount: products.length),
       ),
     );
   }
@@ -1069,9 +1349,13 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title,
-                  style: GoogleFonts.poppins(
-                      fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -1082,9 +1366,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 },
-                child: Text('See all',
-                    style: GoogleFonts.poppins(
-                        fontSize: 12, color: const Color(0xFF0C831F))),
+                child: Text(
+                  'See all',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: const Color(0xFF0C831F),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1097,8 +1385,9 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: items.length,
             itemBuilder: (context, index) {
               final product = items[index];
-              final qty =
-              context.watch<CartProvider>().getQuantityByProductId(product['id']);
+              final qty = context.watch<CartProvider>().getQuantityByProductId(
+                product['id'],
+              );
               return GestureDetector(
                 onTap: () => Navigator.push(
                   context,
@@ -1117,7 +1406,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.grey.withOpacity(0.1), blurRadius: 8)
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 8,
+                      ),
                     ],
                   ),
                   child: Column(
@@ -1127,7 +1418,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           ClipRRect(
                             borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16)),
+                              top: Radius.circular(16),
+                            ),
                             child: _buildImage(product['image']),
                           ),
                           if (product['inStock'] == false)
@@ -1135,7 +1427,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               top: 6,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 3),
+                                  horizontal: 6,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.75),
                                   borderRadius: BorderRadius.circular(4),
@@ -1157,92 +1451,165 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(product['name'],
-                                style: GoogleFonts.poppins(
-                                    fontSize: 13, fontWeight: FontWeight.w600),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
-                            Text(product['unit'],
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(
-                                    fontSize: 11, color: Colors.grey)),
+                            Text(
+                              product['name'],
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              product['unit'],
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                            ),
                             const SizedBox(height: 6),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Rs.${product['price']}',
-                                    style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF0C831F))),
-                                qty == 0
-                                    ? GestureDetector(
-                                  onTap: () {
-                                  context.read<CartProvider>().increment(product['id'], productData: product);
-                                },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 4),
-                                    decoration: BoxDecoration(
-                                        color: const Color(0xFF0C831F),
-                                        borderRadius:
-                                        BorderRadius.circular(8)),
-                                    child: Text('ADD',
-                                        style: GoogleFonts.poppins(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight:
-                                            FontWeight.bold)),
+                                Text(
+                                  'Rs.${product['price']}',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF0C831F),
                                   ),
-                                )
-                                    : Row(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () => context
-                                          .read<CartProvider>()
-                                          .decrement(product['id']),
-                                      child: Container(
-                                          width: 26,
-                                          height: 26,
-                                          decoration: BoxDecoration(
-                                              color: const Color(
-                                                  0xFF0C831F),
-                                              borderRadius:
-                                              BorderRadius.circular(
-                                                  6)),
-                                          child: const Icon(Icons.remove,
-                                              color: Colors.white,
-                                              size: 16)),
-                                    ),
-                                    Padding(
-                                        padding:
-                                        const EdgeInsets.symmetric(
-                                            horizontal: 6),
-                                        child: Text('$qty',
-                                            style: GoogleFonts.poppins(
-                                                fontSize: 13,
-                                                fontWeight:
-                                                FontWeight.bold))),
-                                    GestureDetector(
-                                      onTap: () => context
-                                          .read<CartProvider>()
-                                          .increment(product['id'], productData: product),
-                                      child: Container(
-                                          width: 26,
-                                          height: 26,
-                                          decoration: BoxDecoration(
-                                              color: const Color(
-                                                  0xFF0C831F),
-                                              borderRadius:
-                                              BorderRadius.circular(
-                                                  6)),
-                                          child: const Icon(Icons.add,
-                                              color: Colors.white,
-                                              size: 16)),
-                                    ),
-                                  ],
                                 ),
+                                // BUG-15: no ADD for out-of-stock items
+                                (product['inStock'] == false)
+                                    ? GestureDetector(
+                                        onTap: () =>
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'We will notify you',
+                                                ),
+                                              ),
+                                            ),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                              color: const Color(0xFF0C831F),
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Notify',
+                                            style: GoogleFonts.poppins(
+                                              color: const Color(0xFF0C831F),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : qty == 0
+                                    ? GestureDetector(
+                                        onTap: () {
+                                          context
+                                              .read<CartProvider>()
+                                              .safeIncrement(
+                                                context,
+                                                product['id'],
+                                                productData: product,
+                                              );
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF0C831F),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'ADD',
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : Row(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () => context
+                                                .read<CartProvider>()
+                                                .safeDecrement(
+                                                  context,
+                                                  product['id'],
+                                                ),
+                                            child: Container(
+                                              width: 26,
+                                              height: 26,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF0C831F),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: const Icon(
+                                                Icons.remove,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                            ),
+                                            child: Text(
+                                              '$qty',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: () => context
+                                                .read<CartProvider>()
+                                                .safeIncrement(
+                                                  context,
+                                                  product['id'],
+                                                  productData: product,
+                                                ),
+                                            child: Container(
+                                              width: 26,
+                                              height: 26,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF0C831F),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: const Icon(
+                                                Icons.add,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                               ],
                             ),
                           ],
@@ -1260,5 +1627,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
-
