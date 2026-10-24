@@ -49,7 +49,13 @@ class CategoryRepository {
     try {
       final addresses = await ApiService.getAddresses();
       if (addresses.isNotEmpty) {
-        final a = Map<String, dynamic>.from(addresses.first);
+        final list = addresses
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+        final a = list.firstWhere(
+          (x) => x['is_default'] == true,
+          orElse: () => list.first,
+        );
         userLat = (a['lat'] as num?)?.toDouble();
         userLng = (a['lng'] as num?)?.toDouble();
       }
@@ -67,7 +73,7 @@ class CategoryRepository {
   // so real products route into a real tab and stay purchasable.
   static const Map<String, String> _backendToMockCategoryId = {
     'fruits': 'cat_veg_fruits',
-'vegetables': 'cat_veg_fruits',
+    'vegetables': 'cat_veg_fruits',
     'chocolate': 'cat_sweets_choco',
     'beverages': 'cat_drinks_juices',
     'ice creams': 'cat_ice_creams',
@@ -105,7 +111,10 @@ class CategoryRepository {
   /// exact title equality for any backend category not yet mapped, so new
   /// categories that happen to share their exact name with a mock one
   /// still work automatically).
-  bool _backendCategoryBelongsTo(String backendCategoryName, CategoryModel category) {
+  bool _backendCategoryBelongsTo(
+    String backendCategoryName,
+    CategoryModel category,
+  ) {
     final key = backendCategoryName.toLowerCase();
     final mappedId = _backendToMockCategoryId[key];
     if (mappedId != null) return mappedId == category.id;
@@ -114,7 +123,8 @@ class CategoryRepository {
 
   Future<List<Map<String, dynamic>>> _allBackendProducts() async {
     await ensureLocationLoaded();
-    final isCacheValid = _cachedProducts != null &&
+    final isCacheValid =
+        _cachedProducts != null &&
         _cachedAt != null &&
         DateTime.now().difference(_cachedAt!).inSeconds < 30 &&
         _cachedLat == userLat &&
@@ -140,13 +150,15 @@ class CategoryRepository {
   Future<List<CategorySectionModel>> fetchHomeSections() async {
     await Future.delayed(const Duration(milliseconds: 400));
     return CategoryMockData.sections
-        .map((section) => CategorySectionModel(
-              id: section.id,
-              title: section.title,
-              categories: section.categories
-                  .where((c) => !_hiddenOnHome.contains(c.id))
-                  .toList(),
-            ))
+        .map(
+          (section) => CategorySectionModel(
+            id: section.id,
+            title: section.title,
+            categories: section.categories
+                .where((c) => !_hiddenOnHome.contains(c.id))
+                .toList(),
+          ),
+        )
         .where((section) => section.categories.isNotEmpty)
         .toList();
   }
@@ -155,14 +167,22 @@ class CategoryRepository {
     await Future.delayed(const Duration(milliseconds: 250));
     final category = CategoryMockData.sections
         .expand((s) => s.categories)
-        .firstWhere((c) => c.id == categoryId, orElse: () => CategoryMockData.sections.expand((s) => s.categories).first);
+        .firstWhere(
+          (c) => c.id == categoryId,
+          orElse: () =>
+              CategoryMockData.sections.expand((s) => s.categories).first,
+        );
     return category.subCategories;
   }
 
   CategoryModel _findCategoryById(String categoryId) {
     return CategoryMockData.sections
         .expand((s) => s.categories)
-        .firstWhere((c) => c.id == categoryId, orElse: () => CategoryMockData.sections.expand((s) => s.categories).first);
+        .firstWhere(
+          (c) => c.id == categoryId,
+          orElse: () =>
+              CategoryMockData.sections.expand((s) => s.categories).first,
+        );
   }
 
   String _categoryName(Map<String, dynamic> raw) {
@@ -183,7 +203,8 @@ class CategoryRepository {
   /// land on the subcategory a person would actually expect.
   static const Map<String, List<String>> _subCategoryKeywordOverrides = {
     // Vegetables & Fruits
-    'cat_veg_fruits_sub0': [ // Fresh Vegetables
+    'cat_veg_fruits_sub0': [
+      // Fresh Vegetables
       'tomato', 'onion', 'potato', 'capsicum', 'cabbage', 'cauliflower',
       'brinjal', 'okra', 'bhindi', 'spinach', 'palak', 'carrot',
       'cucumber', 'peas', 'corn', 'mushroom', 'garlic', 'ginger',
@@ -191,44 +212,88 @@ class CategoryRepository {
       'gourd', 'coriander', 'methi', 'drumstick', 'lauki',
       'green leaves', 'leafy', 'saag', 'vegetable', 'veggies',
     ],
-    'cat_veg_fruits_sub1': [ // Fresh Fruits
+    'cat_veg_fruits_sub1': [
+      // Fresh Fruits
       'apple', 'banana', 'mango', 'orange', 'papaya', 'watermelon',
       'pear', 'guava', 'chiku', 'sapota', 'plum', 'litchi', 'grape',
       'jackfruit', 'custard apple', 'sitaphal', 'muskmelon',
     ],
-    'cat_veg_fruits_sub2': [ // Exotic Fruits
+    'cat_veg_fruits_sub2': [
+      // Exotic Fruits
       'dragon fruit', 'kiwi', 'pineapple', 'pomegranate', 'avocado',
       'blueberr', 'strawberr', 'passion fruit', 'persimmon', 'fig',
     ],
 
     // Atta, Rice & Dal
-    'cat_atta_rice_dal_sub0': ['atta', 'flour', 'maida', 'besan', 'sooji', 'rava'],
+    'cat_atta_rice_dal_sub0': [
+      'atta',
+      'flour',
+      'maida',
+      'besan',
+      'sooji',
+      'rava',
+    ],
     'cat_atta_rice_dal_sub1': ['rice', 'basmati', 'poha', 'idli rice'],
     'cat_atta_rice_dal_sub2': [
-      'dal', 'chana', 'moong', 'toor', 'urad', 'rajma', 'lentil', 'masoor', 'pulses',
+      'dal',
+      'chana',
+      'moong',
+      'toor',
+      'urad',
+      'rajma',
+      'lentil',
+      'masoor',
+      'pulses',
     ],
     'cat_atta_rice_dal_sub3': ['sugar', 'jaggery', 'gur'],
 
     // Oil, Ghee & Masala
     'cat_oil_ghee_masala_sub0': [
-      'sunflower oil', 'mustard oil', 'groundnut oil', 'coconut oil',
-      'olive oil', 'refined oil', 'cooking oil', 'edible oil',
+      'sunflower oil',
+      'mustard oil',
+      'groundnut oil',
+      'coconut oil',
+      'olive oil',
+      'refined oil',
+      'cooking oil',
+      'edible oil',
     ],
     'cat_oil_ghee_masala_sub1': ['ghee', 'vanaspati', 'dalda'],
     'cat_oil_ghee_masala_sub2': [
-      'jeera', 'cumin', 'mustard seed', 'cardamom', 'clove', 'cinnamon',
-      'pepper', 'bay leaf', 'star anise', 'fennel', 'saunf',
+      'jeera',
+      'cumin',
+      'mustard seed',
+      'cardamom',
+      'clove',
+      'cinnamon',
+      'pepper',
+      'bay leaf',
+      'star anise',
+      'fennel',
+      'saunf',
     ],
     'cat_oil_ghee_masala_sub3': [
-      'masala', 'garam masala', 'chilli powder', 'turmeric', 'haldi',
-      'coriander powder', 'dhania powder',
+      'masala',
+      'garam masala',
+      'chilli powder',
+      'turmeric',
+      'haldi',
+      'coriander powder',
+      'dhania powder',
     ],
 
     // Dairy, Bread & Eggs
     'cat_dairy_bread_eggs_sub0': ['milk'],
     'cat_dairy_bread_eggs_sub1': ['bread', 'pav', 'bun'],
     'cat_dairy_bread_eggs_sub2': ['egg'],
-    'cat_dairy_bread_eggs_sub3': ['butter', 'cheese', 'paneer', 'curd', 'yogurt', 'cream'],
+    'cat_dairy_bread_eggs_sub3': [
+      'butter',
+      'cheese',
+      'paneer',
+      'curd',
+      'yogurt',
+      'cream',
+    ],
 
     // Bakery
     'cat_bakery_biscuits_sub0': ['cake', 'swiss roll', 'roll'],
@@ -238,28 +303,73 @@ class CategoryRepository {
 
     // Biscuits
     'cat_biscuits_sub0': ['cookie', 'chocochip', 'choco chip'],
-    'cat_biscuits_sub1': ['cream biscuit', 'oreo', 'bourbon', 'treat', 'good day'],
+    'cat_biscuits_sub1': [
+      'cream biscuit',
+      'oreo',
+      'bourbon',
+      'treat',
+      'good day',
+    ],
     'cat_biscuits_sub2': ['glucose', 'parle-g', 'parle g', 'tiger'],
-    'cat_biscuits_sub3': ['marie', 'digestive', 'monaco', 'krackjack', 'thin arrowroot'],
+    'cat_biscuits_sub3': [
+      'marie',
+      'digestive',
+      'monaco',
+      'krackjack',
+      'thin arrowroot',
+    ],
 
     // Dry Fruits & Cereals
-    'cat_dryfruits_cereals_sub0': ['almond', 'cashew', 'walnut', 'pista', 'pistachio', 'nuts'],
-    'cat_dryfruits_cereals_sub1': ['raisin', 'dates', 'kishmish', 'anjeer', 'fig'],
+    'cat_dryfruits_cereals_sub0': [
+      'almond',
+      'cashew',
+      'walnut',
+      'pista',
+      'pistachio',
+      'nuts',
+    ],
+    'cat_dryfruits_cereals_sub1': [
+      'raisin',
+      'dates',
+      'kishmish',
+      'anjeer',
+      'fig',
+    ],
     'cat_dryfruits_cereals_sub2': ['cereal', 'cornflakes', 'corn flakes'],
     'cat_dryfruits_cereals_sub3': ['muesli', 'oats', 'oatmeal', 'granola'],
 
     // Kitchenware & Appliances
     'cat_kitchenware_sub0': [
-      'tawa', 'pan', 'kadhai', 'cookware', 'chopping board', 'kitchen scissors', 'knife',
+      'tawa',
+      'pan',
+      'kadhai',
+      'cookware',
+      'chopping board',
+      'kitchen scissors',
+      'knife',
     ],
     'cat_kitchenware_sub1': ['container', 'storage', 'box', 'jar'],
-    'cat_kitchenware_sub2': ['mixer', 'grinder', 'toaster', 'blender', 'appliance', 'iron'],
+    'cat_kitchenware_sub2': [
+      'mixer',
+      'grinder',
+      'toaster',
+      'blender',
+      'appliance',
+      'iron',
+    ],
     'cat_kitchenware_sub3': ['bottle', 'flask', 'water bottle'],
 
     // Chicken & Meat
     'cat_chicken_meat_fish_sub0': ['chicken'],
     'cat_chicken_meat_fish_sub1': ['mutton', 'lamb', 'goat'],
-    'cat_chicken_meat_fish_sub2': ['fish', 'rohu', 'prawn', 'shrimp', 'seafood', 'pomfret'],
+    'cat_chicken_meat_fish_sub2': [
+      'fish',
+      'rohu',
+      'prawn',
+      'shrimp',
+      'seafood',
+      'pomfret',
+    ],
     'cat_chicken_meat_fish_sub3': ['egg'],
 
     // Namkeen
@@ -275,27 +385,68 @@ class CategoryRepository {
     'cat_chips_sub3': ['multigrain'],
 
     // Sweets & Chocolates
-    'cat_sweets_choco_sub0': ['sweet', 'mithai', 'ladoo', 'barfi', 'rasgulla', 'gulab jamun'],
+    'cat_sweets_choco_sub0': [
+      'sweet',
+      'mithai',
+      'ladoo',
+      'barfi',
+      'rasgulla',
+      'gulab jamun',
+    ],
     'cat_sweets_choco_sub1': [
-      'kitkat', 'hersheys', 'snickers', 'dairy milk', 'mars', 'five star',
-      'munch', 'perk', 'bournville', 'dark chocolate', 'fantasy', 'chocolate bar',
+      'kitkat',
+      'hersheys',
+      'snickers',
+      'dairy milk',
+      'mars',
+      'five star',
+      'munch',
+      'perk',
+      'bournville',
+      'dark chocolate',
+      'fantasy',
+      'chocolate bar',
     ],
     'cat_sweets_choco_sub2': ['gift pack', 'celebration', 'assorted box'],
-    'cat_sweets_choco_sub3': ['candy', 'lollipop', 'eclairs', 'toffee', 'alpenliebe'],
+    'cat_sweets_choco_sub3': [
+      'candy',
+      'lollipop',
+      'eclairs',
+      'toffee',
+      'alpenliebe',
+    ],
 
     // Drinks & Juices
     'cat_drinks_juices_sub0': [
-      'sprite', 'thums up', 'coca-cola', 'coke', 'pepsi', 'fanta', 'soft drink', 'soda',
+      'sprite',
+      'thums up',
+      'coca-cola',
+      'coke',
+      'pepsi',
+      'fanta',
+      'soft drink',
+      'soda',
     ],
     'cat_drinks_juices_sub1': ['juice', 'real ', 'tropicana', 'mango juice'],
-    'cat_drinks_juices_sub2': ['red bull', 'energy drink', 'monster', 'gatorade'],
+    'cat_drinks_juices_sub2': [
+      'red bull',
+      'energy drink',
+      'monster',
+      'gatorade',
+    ],
     'cat_drinks_juices_sub3': ['horlicks', 'health drink', 'protein shake'],
 
     // Tea, Coffee & Milk Drinks
     'cat_tea_coffee_sub0': ['tea', 'chai', 'tetley', 'red label', 'taj mahal'],
     'cat_tea_coffee_sub1': ['coffee', 'nescafe', 'bru'],
     'cat_tea_coffee_sub2': ['green tea', 'lipton green'],
-    'cat_tea_coffee_sub3': ['bournvita', 'horlicks', 'boost', 'complan', 'malt'],
+    'cat_tea_coffee_sub3': [
+      'bournvita',
+      'horlicks',
+      'boost',
+      'complan',
+      'malt',
+    ],
 
     // Instant Food
     'cat_instant_food_sub0': ['noodle', 'maggi', 'pasta'],
@@ -348,38 +499,93 @@ class CategoryRepository {
     // Baby Care
     'cat_baby_care_sub0': ['diaper'],
     'cat_baby_care_sub1': ['baby food', 'cerelac', 'formula'],
-    'cat_baby_care_sub2': ['baby lotion', 'baby oil', 'baby powder', 'baby cream'],
+    'cat_baby_care_sub2': [
+      'baby lotion',
+      'baby oil',
+      'baby powder',
+      'baby cream',
+    ],
     'cat_baby_care_sub3': ['wipes', 'baby wipe'],
 
     // Health & Pharma
     'cat_health_pharma_sub0': ['paracetamol', 'medicine', 'tablet', 'syrup'],
     'cat_health_pharma_sub1': ['supplement', 'multivitamin', 'vitamin'],
-    'cat_health_pharma_sub2': ['first aid', 'sanitizer', 'bandage', 'antiseptic'],
-    'cat_health_pharma_sub3': ['protein powder', 'protein', 'whey', 'nutrition'],
+    'cat_health_pharma_sub2': [
+      'first aid',
+      'sanitizer',
+      'bandage',
+      'antiseptic',
+    ],
+    'cat_health_pharma_sub3': [
+      'protein powder',
+      'protein',
+      'whey',
+      'nutrition',
+    ],
 
     // Home & Lifestyle
-    'cat_home_lifestyle_sub0': ['bedsheet', 'bed linen', 'pillow cover', 'blanket'],
+    'cat_home_lifestyle_sub0': [
+      'bedsheet',
+      'bed linen',
+      'pillow cover',
+      'blanket',
+    ],
     'cat_home_lifestyle_sub1': [
-      'decor', 'showpiece', 'candle', 'puja', 'agarbatti', 'camphor',
-      'pooja thali', 'bell', 'ghanti',
+      'decor',
+      'showpiece',
+      'candle',
+      'puja',
+      'agarbatti',
+      'camphor',
+      'pooja thali',
+      'bell',
+      'ghanti',
     ],
     'cat_home_lifestyle_sub2': ['storage', 'organizer'],
     'cat_home_lifestyle_sub3': ['plant', 'pot', 'planter'],
 
     // Clothes
-    'cat_clothes_sub0': ['tshirt', 't-shirt', 'full sleeve', 'sando', 'vest', 'tank top', 'sleeveless'],
+    'cat_clothes_sub0': [
+      'tshirt',
+      't-shirt',
+      'full sleeve',
+      'sando',
+      'vest',
+      'tank top',
+      'sleeveless',
+    ],
     'cat_clothes_sub1': ['jean', 'trouser'],
-    'cat_clothes_sub2': ['dress', 'floral dress', 'gown', 'skirt', 'denim dress'],
+    'cat_clothes_sub2': [
+      'dress',
+      'floral dress',
+      'gown',
+      'skirt',
+      'denim dress',
+    ],
     'cat_clothes_sub3': ['jacket', 'hoodie', 'sweater', 'sweatshirt'],
 
     // Cleaners & Repellents
-    'cat_cleaners_repellents_sub0': ['floor cleaner', 'toilet cleaner', 'phenyl', 'harpic'],
+    'cat_cleaners_repellents_sub0': [
+      'floor cleaner',
+      'toilet cleaner',
+      'phenyl',
+      'harpic',
+    ],
     'cat_cleaners_repellents_sub1': [
-      'detergent', 'surf excel', 'washing powder', 'tide', 'ariel',
+      'detergent',
+      'surf excel',
+      'washing powder',
+      'tide',
+      'ariel',
     ],
     'cat_cleaners_repellents_sub2': ['dishwash', 'vim', 'dish soap'],
     'cat_cleaners_repellents_sub3': [
-      'mosquito', 'repellent', 'odomos', 'coil', 'good knight', 'all out',
+      'mosquito',
+      'repellent',
+      'odomos',
+      'coil',
+      'good knight',
+      'all out',
     ],
 
     // Electronics
@@ -390,9 +596,23 @@ class CategoryRepository {
 
     // Stationery & Games
     'cat_stationery_games_sub0': ['notebook', 'pen', 'pencil', 'eraser'],
-    'cat_stationery_games_sub1': ['board game', 'playing cards', 'ludo', 'carrom'],
+    'cat_stationery_games_sub1': [
+      'board game',
+      'playing cards',
+      'ludo',
+      'carrom',
+    ],
     'cat_stationery_games_sub2': ['crayon', 'sketch pen', 'paint'],
-    'cat_stationery_games_sub3': ['toy', 'doll', 'puzzle', 'hot wheels', 'car', 'rc ', 'remote control', 'action figure'],
+    'cat_stationery_games_sub3': [
+      'toy',
+      'doll',
+      'puzzle',
+      'hot wheels',
+      'car',
+      'rc ',
+      'remote control',
+      'action figure',
+    ],
   };
 
   /// Finds which subcategory (by position, 0-based) a backend product
@@ -403,7 +623,11 @@ class CategoryRepository {
   /// (6 pcs)" -> the "Eggs" subcategory). Only spreads products evenly
   /// by [index] as a last resort, so every tab has something to show
   /// even without a real match.
-  int _guessSubCategoryIndex(String productName, CategoryModel category, int index) {
+  int _guessSubCategoryIndex(
+    String productName,
+    CategoryModel category,
+    int index,
+  ) {
     final subs = category.subCategories;
     if (subs.isEmpty) return 0;
     final nameLower = productName.toLowerCase();
@@ -423,8 +647,7 @@ class CategoryRepository {
       // would just misfire on unrelated words (e.g. "Fruits" from
       // "Exotic Fruits" matching every fruit, undoing the overrides).
       if (_subCategoryKeywordOverrides.containsKey(subs[s].id)) continue;
-      final words = subs[s]
-          .title
+      final words = subs[s].title
           .toLowerCase()
           .split(RegExp(r'[ &,]+'))
           .where((w) => w.length > 2);
@@ -439,32 +662,40 @@ class CategoryRepository {
   // ProductCard decides network-vs-asset purely by checking if the string
   // starts with "http", so without this prefix it was treated as a bundled
   // asset (and failed to load, since it isn't one).
-  static int _matchSubCategoryByBackendName(String? backendName, CategoryModel category) {
+  static int _matchSubCategoryByBackendName(
+    String? backendName,
+    CategoryModel category,
+  ) {
     if (backendName == null || backendName.trim().isEmpty) return -1;
     final target = backendName.toLowerCase().trim().replaceAll(' ', '');
     final subs = category.subCategories;
     for (var i = 0; i < subs.length; i++) {
       final title = subs[i].title.toLowerCase().replaceAll(' ', '');
-      if (title == target || title.contains(target) || target.contains(title)) return i;
+      if (title == target || title.contains(target) || target.contains(title))
+        return i;
     }
     return -1;
   }
 
   static String _resolveImageUrl(String url) {
-    if (url.isEmpty || url.startsWith('http') || url.startsWith('assets/')) return url;
+    if (url.isEmpty || url.startsWith('http') || url.startsWith('assets/'))
+      return url;
     final host = ApiService.baseUrl.replaceAll('/api/v1', '');
     return '$host$url';
   }
-
 
   /// Builds the subcategory tabs to show for [category], preferring real
   /// backend subcategories (created in the admin panel and attached to
   /// this category's products) over the mock taxonomy. Falls back to the
   /// mock subcategories when no backend product in this category has a
   /// subcategory assigned yet, so existing categories keep working.
-  Future<List<SubCategoryModel>> fetchSubCategoriesForCategory(CategoryModel category) async {
+  Future<List<SubCategoryModel>> fetchSubCategoriesForCategory(
+    CategoryModel category,
+  ) async {
     final all = await _allBackendProducts();
-    final matched = all.where((p) => _backendCategoryBelongsTo(_categoryName(p), category));
+    final matched = all.where(
+      (p) => _backendCategoryBelongsTo(_categoryName(p), category),
+    );
     final seen = <int, SubCategoryModel>{};
     for (final p in matched) {
       final sub = p['subcategory'];
@@ -488,25 +719,44 @@ class CategoryRepository {
     });
     final result = seen.values.toList();
     if (unassigned) {
-      result.add(SubCategoryModel(
-        id: 'backend_other',
-        title: 'Others',
-        categoryId: category.id,
-        icon: category.icon,
-      ));
+      result.add(
+        SubCategoryModel(
+          id: 'backend_other',
+          title: 'Others',
+          categoryId: category.id,
+          icon: category.icon,
+        ),
+      );
     }
     return result;
   }
-  ProductModel _fromBackend(Map<String, dynamic> raw, CategoryModel category, int index) {
-    final price = (raw['price'] is num) ? (raw['price'] as num).toDouble() : 0.0;
+
+  ProductModel _fromBackend(
+    Map<String, dynamic> raw,
+    CategoryModel category,
+    int index,
+  ) {
+    final price = (raw['price'] is num)
+        ? (raw['price'] as num).toDouble()
+        : 0.0;
     final mrp = (raw['mrp'] is num) ? (raw['mrp'] as num).toDouble() : price;
     final imgUrl = _resolveImageUrl((raw['image_url'] ?? '').toString());
     final name = (raw['name'] ?? '').toString();
     final backendSub = raw['subcategory'];
-    final hasRealSubcategory = backendSub is Map && backendSub['id'] != null && (backendSub['id'] as num) > 0;
-    final backendSubName = (backendSub is Map) ? (backendSub['name'] ?? '').toString() : '';
-    final matchedSubIndex = _matchSubCategoryByBackendName(backendSubName, category);
-    final subIndex = matchedSubIndex >= 0 ? matchedSubIndex : _guessSubCategoryIndex(name, category, index);
+    final hasRealSubcategory =
+        backendSub is Map &&
+        backendSub['id'] != null &&
+        (backendSub['id'] as num) > 0;
+    final backendSubName = (backendSub is Map)
+        ? (backendSub['name'] ?? '').toString()
+        : '';
+    final matchedSubIndex = _matchSubCategoryByBackendName(
+      backendSubName,
+      category,
+    );
+    final subIndex = matchedSubIndex >= 0
+        ? matchedSubIndex
+        : _guessSubCategoryIndex(name, category, index);
     final subs = category.subCategories;
     final subCategoryId = hasRealSubcategory
         ? 'backend_${(backendSub['id'] as num).toInt()}'
@@ -520,12 +770,14 @@ class CategoryRepository {
     final computedInStock = raw.containsKey('nearest_in_stock')
         ? raw['nearest_in_stock'] == true
         : (inventories is List && inventories.isNotEmpty)
-            ? inventories.any((inv) =>
+        ? inventories.any(
+            (inv) =>
                 inv is Map &&
                 (inv['in_stock'] == true) &&
                 (inv['stock'] is num) &&
-                (inv['stock'] as num) > 0)
-            : true;
+                (inv['stock'] as num) > 0,
+          )
+        : true;
     final fallbackImage = imgUrl.isEmpty
         ? CategoryMockData.imageForCategory(category.id, poolIndex)
         : null;
@@ -533,7 +785,9 @@ class CategoryRepository {
       id: raw['id'].toString(),
       name: name,
       brand: '',
-      weight: ((raw['weight'] ?? '').toString().trim().isEmpty ? '1 pc' : raw['weight'].toString().trim()),
+      weight: ((raw['weight'] ?? '').toString().trim().isEmpty
+          ? '1 pc'
+          : raw['weight'].toString().trim()),
       price: price,
       mrp: mrp > price ? mrp : price,
       rating: 4.2,
@@ -597,7 +851,9 @@ class CategoryRepository {
     final buckets = List.generate(bucketCount, (_) => <ProductModel>[]);
     for (var i = 0; i < filtered.length; i++) {
       final name = (filtered[i]['name'] ?? '').toString();
-      final subIndex = subs.isEmpty ? 0 : _guessSubCategoryIndex(name, category, i);
+      final subIndex = subs.isEmpty
+          ? 0
+          : _guessSubCategoryIndex(name, category, i);
       buckets[subIndex].add(_fromBackend(filtered[i], category, i));
     }
 
@@ -619,8 +875,9 @@ class CategoryRepository {
         final raw = match.first;
         final catName = _categoryName(raw);
         final mappedId = _backendToMockCategoryId[catName.toLowerCase()];
-        final allCategories =
-            CategoryMockData.sections.expand((s) => s.categories);
+        final allCategories = CategoryMockData.sections.expand(
+          (s) => s.categories,
+        );
         final category = allCategories.firstWhere(
           (c) => mappedId != null
               ? c.id == mappedId
@@ -630,7 +887,10 @@ class CategoryRepository {
         return _fromBackend(raw, category, 0);
       }
     }
-    return CategoryMockData.allProducts.firstWhere((p) => p.id == productId, orElse: () => throw Exception('Product not found'));
+    return CategoryMockData.allProducts.firstWhere(
+      (p) => p.id == productId,
+      orElse: () => throw Exception('Product not found'),
+    );
   }
 
   Future<List<ProductModel>> fetchSimilarProducts(ProductModel product) async {
@@ -639,8 +899,11 @@ class CategoryRepository {
       final category = _findCategoryById(product.categoryId);
       final all = await _allBackendProducts();
       final filtered = all
-          .where((p) =>
-              _backendCategoryBelongsTo(_categoryName(p), category) && p['id'] != intId)
+          .where(
+            (p) =>
+                _backendCategoryBelongsTo(_categoryName(p), category) &&
+                p['id'] != intId,
+          )
           .toList();
       final matched = <ProductModel>[
         for (var i = 0; i < filtered.length && i < 10; i++)
@@ -654,5 +917,3 @@ class CategoryRepository {
         .toList();
   }
 }
-
-

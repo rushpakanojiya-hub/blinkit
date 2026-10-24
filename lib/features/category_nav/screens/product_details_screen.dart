@@ -1,3 +1,4 @@
+import '../../../utils/cart_safe.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -535,7 +536,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           GestureDetector(
-                            onTap: () => cart.decrement(product.id),
+                            onTap: () =>
+                                cart.safeDecrement(context, product.id),
                             child: const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20),
                               child: Icon(
