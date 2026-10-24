@@ -1,4 +1,3 @@
-import '../core/avatar/avatar_catalog.dart';
 import '../providers/product_provider.dart';
 import '../features/category_nav/repositories/category_repository.dart';
 import '../features/address_book/presentation/providers/address_provider.dart';
