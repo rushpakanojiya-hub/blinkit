@@ -122,14 +122,19 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
   }
 
   Widget _optionTile(ColorScheme scheme, IconData icon, String title, VoidCallback onTap) {
+    // ERR-LISTTILE: Material so ListTile ink splashes are visible.
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(color: scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
-      child: ListTile(
+      child: Material(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
         leading: Icon(icon, color: kGreen),
         title: Text(title, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: scheme.onSurface)),
         trailing: Icon(Icons.chevron_right, color: scheme.onSurface.withValues(alpha: 0.4)),
         onTap: onTap,
+      ),
       ),
     );
   }
