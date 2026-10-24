@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/order_model.dart';
@@ -64,7 +64,7 @@ class OrderCard extends StatelessWidget {
               children: [
                 Text('${order.itemCount} item${order.itemCount > 1 ? 's' : ''}',
                     style: GoogleFonts.poppins(fontSize: 13, color: scheme.onSurface.withValues(alpha: 0.7))),
-                Text('${order.grandTotal}',
+                Text('\u20B9${order.grandTotal}',
                     style: GoogleFonts.poppins(
                         fontSize: 14, fontWeight: FontWeight.bold, color: scheme.onSurface)),
               ],

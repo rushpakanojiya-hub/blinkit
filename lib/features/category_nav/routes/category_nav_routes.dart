@@ -41,7 +41,7 @@ final List<GoRoute> categoryNavRoutes = [
       final provider = context.read<CategoryNavProvider>();
       final category = provider.sections
           .expand((s) => s.categories)
-          .firstWhere((c) => c.id == categoryId);
+          .firstWhere((c) => c.id == categoryId, orElse: () => provider.sections.expand((s) => s.categories).first);
       return CategoryProductScreen(category: category);
     },
   ),
@@ -52,6 +52,9 @@ final List<GoRoute> categoryNavRoutes = [
       return FutureBuilder<ProductModel>(
         future: context.read<CategoryNavProvider>().fetchProductById(productId),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Scaffold(appBar: AppBar(), body: const Center(child: Text('Could not load this product.')));
+          }
           if (!snapshot.hasData) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }

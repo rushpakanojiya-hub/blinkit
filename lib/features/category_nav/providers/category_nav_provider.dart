@@ -43,6 +43,8 @@ class CategoryNavProvider extends ChangeNotifier {
 
   CategoryModel? get activeCategory => _activeCategory;
   SubCategoryModel? get activeSubCategory => _activeSubCategory;
+  List<SubCategoryModel> _subCategories = [];
+  List<SubCategoryModel> get subCategories => _subCategories;
   String get query => _query;
   SortOption get sort => _sort;
   bool get inStockOnly => _inStockOnly;
@@ -56,6 +58,12 @@ class CategoryNavProvider extends ChangeNotifier {
     _inStockOnly = false;
     _productStatus = LoadStatus.loading;
     notifyListeners();
+    _repo.fetchSubCategoriesForCategory(category).then((subs) {
+      if (_activeCategory?.id == category.id) {
+        _subCategories = subs;
+        notifyListeners();
+      }
+    });
     try {
       _products = await _repo.fetchProducts(categoryId: category.id);
       _productStatus = _products.isEmpty ? LoadStatus.empty : LoadStatus.loaded;
@@ -102,7 +110,10 @@ class CategoryNavProvider extends ChangeNotifier {
   List<ProductModel> get visibleProducts {
     var list = List<ProductModel>.from(_products);
     if (_activeSubCategory != null) {
-      list = list.where((p) => p.subCategoryId == _activeSubCategory!.id).toList();
+      final activeId = _activeSubCategory!.id;
+      list = activeId == 'backend_other'
+          ? list.where((p) => !p.subCategoryId.startsWith('backend_')).toList()
+          : list.where((p) => p.subCategoryId == activeId).toList();
     }
     if (_query.trim().isNotEmpty) {
       list = list.where((p) => p.matchesQuery(_query)).toList();
@@ -118,7 +129,10 @@ class CategoryNavProvider extends ChangeNotifier {
         list.sort((a, b) => b.price.compareTo(a.price));
         break;
       case SortOption.discount:
-        list.sort((a, b) => b.discountPercent.compareTo(a.discountPercent));
+        list.sort((a, b) {
+          final c = b.discountPercent.compareTo(a.discountPercent);
+          return c != 0 ? c : a.name.compareTo(b.name);
+        });
         break;
       case SortOption.rating:
         list.sort((a, b) => b.rating.compareTo(a.rating));

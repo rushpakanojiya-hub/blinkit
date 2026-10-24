@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/utils/view_state.dart';
 import '../../../../core/widgets/skeleton_loader.dart';
 import '../../../../core/widgets/state_widgets.dart';
+import '../../../../providers/cart_provider.dart';
 import '../providers/wishlist_provider.dart';
 import '../widgets/wishlist_product_card.dart';
 import '../../../../screens/product_detail_screen.dart';
@@ -72,14 +73,29 @@ class _WishlistScreenState extends State<WishlistScreen> {
                           'name': item.name,
                           'price': item.price,
                           'image': item.imageUrl,
-                          'unit': '1 pc',
-                          'category': 'Grocery',
+                          'inStock': item.inStock,
+                          'unit': item.unit,
+                          'category': item.category,
+                          'mrp': item.mrp,
+                          'description': item.description,
                         },
                       ),
                     ),
                   );
                 },
                 onRemove: () => provider.removeItem(item.id),
+                onMoveToCart: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final cart = context.read<CartProvider>();
+                  final ok = await provider.moveToCart(item.id, cart);
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        ok ? 'Moved to cart' : 'Could not move to cart',
+                      ),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -99,17 +115,33 @@ class _WishlistCardSkeleton extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SkeletonBox(width: 84, height: 84, borderRadius: BorderRadius.circular(10)),
+            SkeletonBox(
+              width: 84,
+              height: 84,
+              borderRadius: BorderRadius.circular(10),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SkeletonBox(width: double.infinity, height: 14, borderRadius: BorderRadius.circular(4)),
+                  SkeletonBox(
+                    width: double.infinity,
+                    height: 14,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                   const SizedBox(height: 8),
-                  SkeletonBox(width: 100, height: 12, borderRadius: BorderRadius.circular(4)),
+                  SkeletonBox(
+                    width: 100,
+                    height: 12,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                   const SizedBox(height: 8),
-                  SkeletonBox(width: 140, height: 12, borderRadius: BorderRadius.circular(4)),
+                  SkeletonBox(
+                    width: 140,
+                    height: 12,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ],
               ),
             ),

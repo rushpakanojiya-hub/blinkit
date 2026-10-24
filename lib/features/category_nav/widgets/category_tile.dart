@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/category_models.dart';
 import 'category_placeholder_image.dart';
@@ -31,7 +31,7 @@ class CategoryTile extends StatelessWidget {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(category.image!, fit: BoxFit.cover),
+                        child: Image.asset(category.image!, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Center(child: Icon(Icons.image_not_supported, color: Colors.grey))),
                       ),
                     )
                   : CategoryPlaceholderImage(

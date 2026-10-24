@@ -1,7 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 /// Icon-based placeholder used wherever a product/category photo would
-/// normally go. Mock data has no real image URLs â€” swap this out for
+/// normally go. Mock data has no real image URLs - swap this out for
 /// `CachedNetworkImage`/`Image.asset` per item once real assets exist.
 class CategoryPlaceholderImage extends StatelessWidget {
   final IconData icon;

@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import '../../../utils/cart_safe.dart';
+import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -39,45 +40,69 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-              child: (product.image != null && product.image!.isNotEmpty)
-                  ? (product.image!.startsWith('http')
-                      ? CachedNetworkImage(
-                          imageUrl: product.image!,
-                          width: double.infinity,
-                          height: 100,
-                          fit: BoxFit.contain,
-                          memCacheWidth: 240,
-                          filterQuality: FilterQuality.low,
-                          placeholder: (_, __) => const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
-                          errorWidget: (_, __, ___) => CategoryPlaceholderImage(
-                            icon: product.icon,
-                            color: product.color,
-                            size: 100,
-                            borderRadius: 0,
-                          ),
-                        )
-                      : Image.asset(
-                          product.image!,
-                          width: double.infinity,
-                          height: 100,
-                          fit: BoxFit.contain,
-                          cacheWidth: 240,
-                          filterQuality: FilterQuality.low,
-                          errorBuilder: (_, __, ___) => CategoryPlaceholderImage(
-                            icon: product.icon,
-                            color: product.color,
-                            size: 100,
-                            borderRadius: 0,
-                          ),
-                        ))
-                  : CategoryPlaceholderImage(
-                      icon: product.icon,
-                      color: product.color,
-                      size: 100,
-                      borderRadius: 0,
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                  child: (product.image != null && product.image!.isNotEmpty)
+                      ? (product.image!.startsWith('http')
+                          ? CachedNetworkImage(
+                              imageUrl: product.image!,
+                              width: double.infinity,
+                              height: 100,
+                              fit: BoxFit.contain,
+                              memCacheWidth: 240,
+                              filterQuality: FilterQuality.low,
+                              placeholder: (_, __) => const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
+                              errorWidget: (_, __, ___) => CategoryPlaceholderImage(
+                                icon: product.icon,
+                                color: product.color,
+                                size: 100,
+                                borderRadius: 0,
+                              ),
+                            )
+                          : Image.asset(
+                              product.image!,
+                              width: double.infinity,
+                              height: 100,
+                              fit: BoxFit.contain,
+                              cacheWidth: 240,
+                              filterQuality: FilterQuality.low,
+                              errorBuilder: (_, __, ___) => CategoryPlaceholderImage(
+                                icon: product.icon,
+                                color: product.color,
+                                size: 100,
+                                borderRadius: 0,
+                              ),
+                            ))
+                      : CategoryPlaceholderImage(
+                          icon: product.icon,
+                          color: product.color,
+                          size: 100,
+                          borderRadius: 0,
+                        ),
+                ),
+                if (!product.inStock)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Out of stock',
+                        style: GoogleFonts.poppins(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
+                  ),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
@@ -98,7 +123,7 @@ class ProductCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.poppins(fontSize: 12.5, fontWeight: FontWeight.w600)),
             const SizedBox(height: 2),
-            Text('${product.brand} \u2022 ${product.weight}',
+            Text([product.brand, product.weight].where((s) => s.trim().isNotEmpty).join(' \u2022 '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.poppins(fontSize: 10.5, color: scheme.onSurface.withValues(alpha: 0.55))),
@@ -143,6 +168,21 @@ class _AddButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final cart = context.read<CartProvider>();
 
+    if (!product.inStock) {
+      return OutlinedButton(
+        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('We will notify you'))),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          side: const BorderSide(color: kGreen),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text('Notify',
+            style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: kGreen)),
+      );
+    }
+
     // Categories-tab filler items (shown when a category doesn't have
     // enough real backend products) have non-numeric string ids and can
     // never actually be purchased (CartProvider.addProduct blocks them).
@@ -168,8 +208,32 @@ class _AddButton extends StatelessWidget {
             await cart.increment(product.id, productData: productCartData(product));
           } catch (e) {
             if (context.mounted) {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Could not add item. Please try again.')),
+                SnackBar(
+                  content: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.shopping_bag_outlined, color: Color(0xFFF5C518), size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          e.toString().replaceFirst('Exception: ', ''),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: const Color(0xFF2D2D2D),
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.only(left: 16, right: 16, bottom: 80),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  duration: const Duration(seconds: 3),
+                ),
               );
             }
           }
@@ -191,7 +255,7 @@ class _AddButton extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _StepperButton(icon: Icons.remove, onTap: () => cart.decrement(product.id)),
+          _StepperButton(icon: Icons.remove, onTap: () => cart.safeDecrement(context, product.id)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),
             child: Text('$qty',
@@ -199,7 +263,41 @@ class _AddButton extends StatelessWidget {
           ),
           _StepperButton(
               icon: Icons.add,
-              onTap: () => cart.increment(product.id, productData: productCartData(product))),
+              onTap: () async {
+                try {
+                  await cart.increment(product.id, productData: productCartData(product));
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.shopping_bag_outlined, color: Color(0xFFF5C518), size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                e.toString().replaceFirst('Exception: ', ''),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: const Color(0xFF2D2D2D),
+                        behavior: SnackBarBehavior.floating,
+                        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 80),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                }
+              }),
         ],
       ),
     );

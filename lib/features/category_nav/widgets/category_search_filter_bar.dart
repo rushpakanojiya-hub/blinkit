@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/category_models.dart';
@@ -29,7 +29,10 @@ class CategorySearchBar extends StatelessWidget {
                 style: GoogleFonts.poppins(fontSize: 13.5),
                 decoration: InputDecoration(
                   hintText: 'Search in $categoryTitle',
-                  hintStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.grey),
+                  hintStyle: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.grey,
+                  ),
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -65,7 +68,9 @@ class FilterSortBar extends StatelessWidget {
           Expanded(
             child: _ActionChip(
               icon: Icons.swap_vert,
-              label: provider.sort == SortOption.relevance ? 'Sort' : provider.sort.label,
+              label: provider.sort == SortOption.relevance
+                  ? 'Sort'
+                  : provider.sort.label,
               highlighted: provider.sort != SortOption.relevance,
               onTap: () => _showSortSheet(context),
             ),
@@ -79,7 +84,8 @@ class FilterSortBar extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (sheetContext) => Consumer<CategoryNavProvider>(
         builder: (context, p, __) => Padding(
           padding: const EdgeInsets.all(20),
@@ -87,24 +93,22 @@ class FilterSortBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Filters', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(
+                'Filters',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 12),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text('In stock only', style: GoogleFonts.poppins(fontSize: 13.5)),
+                title: Text(
+                  'In stock only',
+                  style: GoogleFonts.poppins(fontSize: 13.5),
+                ),
                 value: p.inStockOnly,
                 onChanged: (_) => p.toggleInStockOnly(),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(sheetContext),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
-                  child: Text('Apply', style: GoogleFonts.poppins(color: Colors.white)),
-                ),
               ),
             ],
           ),
@@ -117,7 +121,8 @@ class FilterSortBar extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (sheetContext) => Consumer<CategoryNavProvider>(
         builder: (context, p, __) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -127,18 +132,29 @@ class FilterSortBar extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text('Sort by', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'Sort by',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               const SizedBox(height: 8),
-              ...SortOption.values.map((option) => RadioListTile<SortOption>(
-                    value: option,
-                    groupValue: p.sort,
-                    title: Text(option.label, style: GoogleFonts.poppins(fontSize: 13.5)),
-                    onChanged: (value) {
-                      p.updateSort(value!);
-                      Navigator.pop(sheetContext);
-                    },
-                  )),
+              ...SortOption.values.map(
+                (option) => RadioListTile<SortOption>(
+                  value: option,
+                  groupValue: p.sort,
+                  title: Text(
+                    option.label,
+                    style: GoogleFonts.poppins(fontSize: 13.5),
+                  ),
+                  onChanged: (value) {
+                    p.updateSort(value!);
+                    Navigator.pop(sheetContext);
+                  },
+                ),
+              ),
             ],
           ),
         ),
@@ -169,20 +185,29 @@ class _ActionChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
-          border: Border.all(color: highlighted ? scheme.primary : Colors.grey.shade300),
+          border: Border.all(
+            color: highlighted ? scheme.primary : Colors.grey.shade300,
+          ),
           borderRadius: BorderRadius.circular(10),
           color: highlighted ? scheme.primary.withValues(alpha: 0.08) : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: highlighted ? scheme.primary : Colors.black87),
+            Icon(
+              icon,
+              size: 16,
+              color: highlighted ? scheme.primary : scheme.onSurface,
+            ),
             const SizedBox(width: 6),
-            Text(label,
-                style: GoogleFonts.poppins(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: highlighted ? scheme.primary : Colors.black87)),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: highlighted ? scheme.primary : scheme.onSurface,
+              ),
+            ),
           ],
         ),
       ),

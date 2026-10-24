@@ -1,4 +1,4 @@
-﻿class WishlistItemEntity {
+class WishlistItemEntity {
   final String id;
   final String productId;
   final String name;
@@ -9,6 +9,9 @@
   final double rating;
   final int ratingCount;
   final bool inStock;
+  final String unit;
+  final String category;
+  final String description;
 
   const WishlistItemEntity({
     required this.id,
@@ -21,6 +24,8 @@
     required this.rating,
     required this.ratingCount,
     this.inStock = true,
+    this.unit = '1 pc',
+    this.category = 'Grocery',
+    this.description = '',
   });
 }
-

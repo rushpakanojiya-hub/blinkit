@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../widgets/state_views.dart';
@@ -123,7 +123,7 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
             const FilterSortBar(),
             const SizedBox(height: 10),
             SubcategoryChips(
-              subCategories: category.subCategories,
+              subCategories: provider.subCategories,
               selected: provider.activeSubCategory,
               onSelected: (sub) {
                 provider.selectSubCategory(sub);
@@ -131,7 +131,7 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
               },
             ),
             const SizedBox(height: 6),
-            Expanded(child: _buildBody(context, provider, shown, allVisible.length)),
+            Expanded(child: _buildBody(context, provider, shown, allVisible.length, cart.cartCount > 0)),
           ],
         ),
       ),
@@ -218,8 +218,8 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
     );
   }
 
-  Widget _buildBody(
-      BuildContext context, CategoryNavProvider provider, List shownRaw, int totalCount) {
+  Widget _buildBody(BuildContext context, CategoryNavProvider provider,
+      List shownRaw, int totalCount, bool hasCartBar) {
     final shown = shownRaw.cast<ProductModel>();
 
     if (provider.productStatus == LoadStatus.loading || provider.productStatus == LoadStatus.idle) {
@@ -238,7 +238,7 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: EdgeInsets.only(bottom: hasCartBar ? 100 : 24),
       children: [
         GridView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -273,3 +273,5 @@ class _CategoryProductScreenState extends State<CategoryProductScreen> {
     );
   }
 }
+
+

@@ -6,12 +6,14 @@ class WishlistProductCard extends StatelessWidget {
   final WishlistItemEntity item;
   final VoidCallback onOpenDetails;
   final VoidCallback onRemove;
+  final VoidCallback? onMoveToCart;
 
   const WishlistProductCard({
     super.key,
     required this.item,
     required this.onOpenDetails,
     required this.onRemove,
+    this.onMoveToCart,
   });
 
   @override
@@ -40,7 +42,9 @@ class WishlistProductCard extends StatelessWidget {
                               width: 84,
                               height: 84,
                               color: theme.colorScheme.surfaceContainerHighest,
-                              child: const Icon(Icons.image_not_supported_outlined),
+                              child: const Icon(
+                                Icons.image_not_supported_outlined,
+                              ),
                             ),
                           )
                         : CachedNetworkImage(
@@ -48,12 +52,22 @@ class WishlistProductCard extends StatelessWidget {
                             width: 84,
                             height: 84,
                             fit: BoxFit.cover,
-                            placeholder: (_, __) => const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
+                            placeholder: (_, __) => const Center(
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
                             errorWidget: (_, __, ___) => Container(
                               width: 84,
                               height: 84,
                               color: theme.colorScheme.surfaceContainerHighest,
-                              child: const Icon(Icons.image_not_supported_outlined),
+                              child: const Icon(
+                                Icons.image_not_supported_outlined,
+                              ),
                             ),
                           ),
                   ),
@@ -90,7 +104,11 @@ class WishlistProductCard extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           onPressed: onRemove,
-                          icon: const Icon(Icons.favorite, size: 20, color: Colors.redAccent),
+                          icon: const Icon(
+                            Icons.favorite,
+                            size: 20,
+                            color: Colors.redAccent,
+                          ),
                         ),
                         const SizedBox(width: 4),
                         Expanded(
@@ -101,39 +119,66 @@ class WishlistProductCard extends StatelessWidget {
                             style: theme.textTheme.titleMedium,
                           ),
                         ),
+                        if (onMoveToCart != null)
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: item.inStock
+                                ? 'Move to cart'
+                                : 'Out of stock',
+                            onPressed: item.inStock ? onMoveToCart : null,
+                            icon: const Icon(
+                              Icons.add_shopping_cart_rounded,
+                              size: 20,
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.star_rounded,
-                            size: 16, color: Colors.amber.shade700),
+                        Icon(
+                          Icons.star_rounded,
+                          size: 16,
+                          color: Colors.amber.shade700,
+                        ),
                         const SizedBox(width: 2),
-                        Text('${item.rating}', style: theme.textTheme.bodyMedium),
+                        Text(
+                          '${item.rating}',
+                          style: theme.textTheme.bodyMedium,
+                        ),
                         const SizedBox(width: 4),
-                        Text('(${item.ratingCount})', style: theme.textTheme.bodyMedium),
+                        Text(
+                          '(${item.ratingCount})',
+                          style: theme.textTheme.bodyMedium,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Text('\u20b9${item.price.toStringAsFixed(0)}',
-                            style: theme.textTheme.titleMedium),
-                        const SizedBox(width: 6),
                         Text(
-                          '\u20b9${item.mrp.toStringAsFixed(0)}',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            decoration: TextDecoration.lineThrough,
-                          ),
+                          '\u20b9${item.price.toStringAsFixed(0)}',
+                          style: theme.textTheme.titleMedium,
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${item.discountPercent}% OFF',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
+                        if (item.mrp > item.price) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            '\u20b9${item.mrp.toStringAsFixed(0)}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              decoration: TextDecoration.lineThrough,
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${item.discountPercent}% OFF',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],

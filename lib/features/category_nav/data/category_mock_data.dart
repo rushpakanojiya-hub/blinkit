@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../constants/asset_constants.dart';
 import '../models/category_models.dart';
 
@@ -21,7 +21,7 @@ class CategoryMockData {
         categories: [
           _category('cat_veg_fruits', 'Vegetables & Fruits', 'sec_grocery',
               Icons.eco, const Color(0xFF3AA655),
-              ['Fresh Vegetables', 'Fresh Fruits', 'Organic Produce', 'Exotic Fruits'],
+              ['Fresh Vegetables', 'Fresh Fruits', 'Exotic Fruits'],
               image: AssetConstants.vegetablesFruits),
           _category('cat_atta_rice_dal', 'Atta, Rice & Dal', 'sec_grocery',
               Icons.grain, const Color(0xFFC08A3E),
@@ -134,7 +134,7 @@ class CategoryMockData {
         id: 'sec_household',
         title: 'Household Essentials',
         categories: [
-          _category('cat_home_lifestyle', 'Home & Lifestyle', 'sec_household',
+          _category('cat_home_lifestyle', 'Pooja Essentials', 'sec_household',
               Icons.chair, const Color(0xFF8A6A3E),
               ['Bed Linen', 'Home Decor', 'Storage Solutions', 'Plants & Pots'],
               image: AssetConstants.homeLifestyle),
@@ -417,9 +417,6 @@ class CategoryMockData {
       '$_p/fruits1.png',
       '$_p/fruits2.png',
       '$_p/fruits3.png',
-      '$_p/organic1.png',
-      '$_p/organic2.png',
-      '$_p/organic3.png',
       '$_p/exoticfruits1.png',
       '$_p/exoticfruits2.png',
       '$_p/exoticfruits3.png',
@@ -581,7 +578,6 @@ class CategoryMockData {
       'Mixed Vegetables', 'Fresh Tomatoes', 'Fresh Onions',
       'Apples', 'Bananas', 'Oranges',
       'Kiwi', 'Dragon Fruit', 'Avocado',
-      'Organic Spinach', 'Organic Carrots', 'Organic Tomatoes',
     ],
     'cat_atta_rice_dal': [
       'Aashirvaad Atta', 'Whole Wheat Atta', 'Multigrain Atta',
@@ -595,12 +591,22 @@ class CategoryMockData {
       'Kali Mirch', 'MDH Masala', 'Chana Masala', 'Chicken Masala',
     ],
     'cat_dairy_bread_eggs': [
-      'Farm Eggs (6 pcs)', 'Farm Eggs (12 pcs)',
+      'Amul Milk', 'Toned Milk', 'Full Cream Milk',
+      'White Bread', 'Brown Bread', 'Pav Bread',
+      'Farm Eggs', 'Brown Eggs', 'Boiled Eggs',
+      'Amul Butter', 'Britannia Butter', 'Salted Butter',
     ],
     'cat_bakery_biscuits': [
       'Parle-G Biscuits', 'Marie Gold Biscuits', 'Good Day Biscuits',
       'Chocolate Cake', 'Vanilla Cake', 'Fruit Cake',
       'Chocolate Chip Cookies', 'Butter Cookies', 'Oatmeal Cookies',
+    ],
+    'cat_biscuits': [
+      'Parle-G Biscuits', 'Marie Gold Biscuits', 'Good Day Biscuits',
+      'Chocolate Chip Cookies', 'Butter Cookies', 'Oatmeal Cookies',
+    ],
+    'cat_chips': [
+      'Lays Potato Chips', 'Kurkure Corn Chips', 'Bingo Mad Angles',
     ],
     'cat_dryfruits_cereals': [
       'Almonds', 'Cashews', 'Raisins', 'Dates',
@@ -615,7 +621,7 @@ class CategoryMockData {
     'cat_chicken_meat_fish': [
       'Chicken Curry Cut', 'Chicken Breast', 'Chicken Drumsticks',
       'Mutton Curry Cut', 'Mutton Boneless', 'Mutton Chops',
-      'Fish Fillet', 'Prawns',
+      'Fish Fillet', 'Prawns', 'Rohu Fish',
       'Farm Eggs', 'Brown Eggs', 'Boiled Eggs',
     ],
     'cat_chips_namkeen': [
@@ -827,5 +833,6 @@ class CategoryMockData {
     return _productsFor(category);
   }
 }
+
 
 

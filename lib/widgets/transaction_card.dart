@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/wallet_model.dart';
@@ -68,7 +68,7 @@ class TransactionCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('${_isCredit ? '+' : '-'}${transaction.amount}',
+              Text('${_isCredit ? '+' : '-'}\u20B9${transaction.amount}',
                   style: GoogleFonts.poppins(
                       fontSize: 14, fontWeight: FontWeight.bold, color: _isCredit ? kGreen : Colors.red)),
               const SizedBox(height: 2),

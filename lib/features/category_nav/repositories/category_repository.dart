@@ -1,4 +1,4 @@
-﻿import '../../../services/api_service.dart';
+import '../../../services/api_service.dart';
 import '../data/category_mock_data.dart';
 import '../models/category_models.dart';
 
@@ -9,6 +9,54 @@ import '../models/category_models.dart';
 class CategoryRepository {
   static List<Map<String, dynamic>>? _cachedProducts;
   static DateTime? _cachedAt;
+  static double? _cachedLat;
+  static double? _cachedLng;
+
+  // Set once (e.g. from AddressProvider) whenever the user's default
+  // address is loaded or changed, so product fetches can ask the backend
+  // for nearest-warehouse stock instead of raw combined stock.
+  static double? userLat;
+  static double? userLng;
+
+  static void clearLocation() {
+    userLat = null;
+    userLng = null;
+    _cachedLat = null;
+    _cachedLng = null;
+    _cachedProducts = null;
+    _cachedAt = null;
+    _locationLoadFuture = null;
+  }
+
+  static void updateLocation(double? lat, double? lng) {
+    userLat = lat;
+    userLng = lng;
+  }
+
+  // Memoized so every product fetch (Home init, category grid, product
+  // details, etc.) waits for the user's saved address to load before
+  // hitting the backend - otherwise an early fetch goes out with no
+  // lat/lng and the backend falls back to combined-warehouse stock,
+  // showing items as purchasable that are actually out of stock nearby.
+  static Future<void>? _locationLoadFuture;
+
+  static Future<void> ensureLocationLoaded() {
+    if (userLat != null && userLng != null) return Future.value();
+    return _locationLoadFuture ??= _loadLocationFromSavedAddress();
+  }
+
+  static Future<void> _loadLocationFromSavedAddress() async {
+    try {
+      final addresses = await ApiService.getAddresses();
+      if (addresses.isNotEmpty) {
+        final a = Map<String, dynamic>.from(addresses.first);
+        userLat = (a['lat'] as num?)?.toDouble();
+        userLng = (a['lng'] as num?)?.toDouble();
+      }
+    } catch (_) {
+      // Non-fatal - fetches will just fall back to combined-warehouse totals.
+    }
+  }
 
   // Backend category names (from the real DB, e.g. "Fruits", "Shampoo")
   // don't line up 1:1 with the mock taxonomy's category titles (e.g.
@@ -65,12 +113,19 @@ class CategoryRepository {
   }
 
   Future<List<Map<String, dynamic>>> _allBackendProducts() async {
-    final isCacheValid = _cachedProducts != null && _cachedAt != null && DateTime.now().difference(_cachedAt!).inSeconds < 30;
+    await ensureLocationLoaded();
+    final isCacheValid = _cachedProducts != null &&
+        _cachedAt != null &&
+        DateTime.now().difference(_cachedAt!).inSeconds < 30 &&
+        _cachedLat == userLat &&
+        _cachedLng == userLng;
     if (isCacheValid) return _cachedProducts!;
     try {
-      final raw = await ApiService.getProducts();
+      final raw = await ApiService.getProducts(lat: userLat, lng: userLng);
       _cachedProducts = raw.cast<Map<String, dynamic>>();
       _cachedAt = DateTime.now();
+      _cachedLat = userLat;
+      _cachedLng = userLng;
     } catch (_) {
       _cachedProducts = [];
     }
@@ -100,14 +155,14 @@ class CategoryRepository {
     await Future.delayed(const Duration(milliseconds: 250));
     final category = CategoryMockData.sections
         .expand((s) => s.categories)
-        .firstWhere((c) => c.id == categoryId);
+        .firstWhere((c) => c.id == categoryId, orElse: () => CategoryMockData.sections.expand((s) => s.categories).first);
     return category.subCategories;
   }
 
   CategoryModel _findCategoryById(String categoryId) {
     return CategoryMockData.sections
         .expand((s) => s.categories)
-        .firstWhere((c) => c.id == categoryId);
+        .firstWhere((c) => c.id == categoryId, orElse: () => CategoryMockData.sections.expand((s) => s.categories).first);
   }
 
   String _categoryName(Map<String, dynamic> raw) {
@@ -141,8 +196,7 @@ class CategoryRepository {
       'pear', 'guava', 'chiku', 'sapota', 'plum', 'litchi', 'grape',
       'jackfruit', 'custard apple', 'sitaphal', 'muskmelon',
     ],
-    'cat_veg_fruits_sub2': ['organic'], // Organic Produce
-    'cat_veg_fruits_sub3': [ // Exotic Fruits
+    'cat_veg_fruits_sub2': [ // Exotic Fruits
       'dragon fruit', 'kiwi', 'pineapple', 'pomegranate', 'avocado',
       'blueberr', 'strawberr', 'passion fruit', 'persimmon', 'fig',
     ],
@@ -385,24 +439,93 @@ class CategoryRepository {
   // ProductCard decides network-vs-asset purely by checking if the string
   // starts with "http", so without this prefix it was treated as a bundled
   // asset (and failed to load, since it isn't one).
+  static int _matchSubCategoryByBackendName(String? backendName, CategoryModel category) {
+    if (backendName == null || backendName.trim().isEmpty) return -1;
+    final target = backendName.toLowerCase().trim().replaceAll(' ', '');
+    final subs = category.subCategories;
+    for (var i = 0; i < subs.length; i++) {
+      final title = subs[i].title.toLowerCase().replaceAll(' ', '');
+      if (title == target || title.contains(target) || target.contains(title)) return i;
+    }
+    return -1;
+  }
+
   static String _resolveImageUrl(String url) {
     if (url.isEmpty || url.startsWith('http') || url.startsWith('assets/')) return url;
     final host = ApiService.baseUrl.replaceAll('/api/v1', '');
     return '$host$url';
   }
 
+
+  /// Builds the subcategory tabs to show for [category], preferring real
+  /// backend subcategories (created in the admin panel and attached to
+  /// this category's products) over the mock taxonomy. Falls back to the
+  /// mock subcategories when no backend product in this category has a
+  /// subcategory assigned yet, so existing categories keep working.
+  Future<List<SubCategoryModel>> fetchSubCategoriesForCategory(CategoryModel category) async {
+    final all = await _allBackendProducts();
+    final matched = all.where((p) => _backendCategoryBelongsTo(_categoryName(p), category));
+    final seen = <int, SubCategoryModel>{};
+    for (final p in matched) {
+      final sub = p['subcategory'];
+      if (sub is Map && sub['id'] != null && (sub['id'] as num) > 0) {
+        final id = (sub['id'] as num).toInt();
+        seen.putIfAbsent(
+          id,
+          () => SubCategoryModel(
+            id: 'backend_$id',
+            title: (sub['name'] ?? '').toString(),
+            categoryId: category.id,
+            icon: category.icon,
+          ),
+        );
+      }
+    }
+    if (seen.isEmpty) return category.subCategories;
+    final unassigned = matched.any((p) {
+      final s = p['subcategory'];
+      return !(s is Map && s['id'] != null && (s['id'] as num) > 0);
+    });
+    final result = seen.values.toList();
+    if (unassigned) {
+      result.add(SubCategoryModel(
+        id: 'backend_other',
+        title: 'Others',
+        categoryId: category.id,
+        icon: category.icon,
+      ));
+    }
+    return result;
+  }
   ProductModel _fromBackend(Map<String, dynamic> raw, CategoryModel category, int index) {
     final price = (raw['price'] is num) ? (raw['price'] as num).toDouble() : 0.0;
+    final mrp = (raw['mrp'] is num) ? (raw['mrp'] as num).toDouble() : price;
     final imgUrl = _resolveImageUrl((raw['image_url'] ?? '').toString());
     final name = (raw['name'] ?? '').toString();
-    final subIndex = _guessSubCategoryIndex(name, category, index);
+    final backendSub = raw['subcategory'];
+    final hasRealSubcategory = backendSub is Map && backendSub['id'] != null && (backendSub['id'] as num) > 0;
+    final backendSubName = (backendSub is Map) ? (backendSub['name'] ?? '').toString() : '';
+    final matchedSubIndex = _matchSubCategoryByBackendName(backendSubName, category);
+    final subIndex = matchedSubIndex >= 0 ? matchedSubIndex : _guessSubCategoryIndex(name, category, index);
     final subs = category.subCategories;
-    final subCategoryId = subs.isEmpty ? '' : subs[subIndex].id;
+    final subCategoryId = hasRealSubcategory
+        ? 'backend_${(backendSub['id'] as num).toInt()}'
+        : (subs.isEmpty ? '' : subs[subIndex].id);
     // Pick an image from the same 3-slot block as the matched subcategory
     // (pool is laid out in blocks of 3 per subcategory, in subcategory
     // order), so e.g. an "Eggs" product gets an egg photo, not whichever
     // image happens to sit at the product's raw list position.
     final poolIndex = subIndex * 3 + (index % 3);
+    final inventories = raw['inventories'];
+    final computedInStock = raw.containsKey('nearest_in_stock')
+        ? raw['nearest_in_stock'] == true
+        : (inventories is List && inventories.isNotEmpty)
+            ? inventories.any((inv) =>
+                inv is Map &&
+                (inv['in_stock'] == true) &&
+                (inv['stock'] is num) &&
+                (inv['stock'] as num) > 0)
+            : true;
     final fallbackImage = imgUrl.isEmpty
         ? CategoryMockData.imageForCategory(category.id, poolIndex)
         : null;
@@ -410,9 +533,9 @@ class CategoryRepository {
       id: raw['id'].toString(),
       name: name,
       brand: '',
-      weight: '1 pc',
+      weight: ((raw['weight'] ?? '').toString().trim().isEmpty ? '1 pc' : raw['weight'].toString().trim()),
       price: price,
-      mrp: price,
+      mrp: mrp > price ? mrp : price,
       rating: 4.2,
       ratingCount: 0,
       icon: category.icon,
@@ -422,9 +545,39 @@ class CategoryRepository {
       description: (raw['description'] ?? '').toString(),
       nutrition: const [],
       deliveryTime: '10 mins',
-      inStock: true,
+      inStock: computedInStock,
       image: imgUrl.isEmpty ? fallbackImage : imgUrl,
     );
+  }
+
+  // Home screen ke liye: Categories screen jaisi hi image chunta hai.
+  static final Map<String, List<dynamic>> _fallbackOrder = {};
+
+  String? imageForBackendProduct(Map<String, dynamic> raw) {
+    final catName = _categoryName(raw);
+    final mappedId = _backendToMockCategoryId[catName.toLowerCase()];
+    CategoryModel? category;
+    for (final s in CategoryMockData.sections) {
+      for (final c in s.categories) {
+        final match = mappedId != null
+            ? c.id == mappedId
+            : c.title.toLowerCase() == catName.toLowerCase();
+        if (match) {
+          category = c;
+          break;
+        }
+      }
+      if (category != null) break;
+    }
+    if (category == null) return null;
+    final ids = _fallbackOrder.putIfAbsent(category.id, () => <dynamic>[]);
+    var idx = ids.indexOf(raw['id']);
+    if (idx < 0) {
+      ids.add(raw['id']);
+      idx = ids.length - 1;
+    }
+    final img = _fromBackend(raw, category, idx).image;
+    return (img == null || img.isEmpty) ? null : img;
   }
 
   Future<List<ProductModel>> fetchProducts({required String categoryId}) async {
@@ -477,7 +630,7 @@ class CategoryRepository {
         return _fromBackend(raw, category, 0);
       }
     }
-    return CategoryMockData.allProducts.firstWhere((p) => p.id == productId);
+    return CategoryMockData.allProducts.firstWhere((p) => p.id == productId, orElse: () => throw Exception('Product not found'));
   }
 
   Future<List<ProductModel>> fetchSimilarProducts(ProductModel product) async {
