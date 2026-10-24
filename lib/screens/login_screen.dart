@@ -1,9 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import 'otp_screen.dart';
 import 'home_screen.dart';
+import 'legal_screen.dart';
 
 const Color kBrandGreen = Color(0xFF0C831F);
 const Color kBrandGreenDark = Color(0xFF08611A);
@@ -35,13 +37,14 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isSending = true);
     try {
       final data = await ApiService.sendOTP(_phoneController.text);
+      if (!mounted) return;
       debugPrint('SEND OTP RESPONSE: $data');
       setState(() => _isSending = false);
       if (data['error'] != null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['error'].toString())),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(data['error'].toString())));
         }
         return;
       }
@@ -60,30 +63,43 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      setState(() => _isSending = false);
+      if (mounted) setState(() => _isSending = false);
       if (mounted) {
+        final msg = e.toString();
+        final offline =
+            msg.contains('SocketException') ||
+            msg.contains('Failed host lookup') ||
+            msg.contains('ClientException') ||
+            msg.contains('TimeoutException');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error sending OTP: $e')),
+          SnackBar(
+            content: Text(
+              offline
+                  ? 'No internet connection. Please check your network and try again.'
+                  : 'Could not send OTP. Please try again.',
+            ),
+          ),
         );
       }
     }
   }
 
-  void _skipLogin() {
+  void _skipLogin() async {
+    await ApiService.setSkippedLogin(true);
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 
-  @override
   Widget _buildMobile(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final bannerHeight = screenHeight * 0.45;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         top: false,
@@ -107,7 +123,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.two_wheeler, color: kBrandGreen, size: 16),
+                        child: const Icon(
+                          Icons.two_wheeler,
+                          color: kBrandGreen,
+                          size: 16,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -145,9 +165,16 @@ class _LoginScreenState extends State<LoginScreen> {
     return _buildMobile(context);
   }
 
+  void _openLegalDoc(LegalDocType type) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => LegalScreen(type: type)),
+    );
+  }
+
   Widget _buildWeb(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Row(
         children: [
           Expanded(
@@ -173,7 +200,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.bolt, color: kBrandGreen, size: 28),
+                        child: const Icon(
+                          Icons.bolt,
+                          color: kBrandGreen,
+                          size: 28,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Text(
@@ -241,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Log In or Sign Up',
                       style: GoogleFonts.poppins(
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 32,
                         fontWeight: FontWeight.w800,
                       ),
@@ -250,7 +281,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Enter your mobile number to continue to GoFresh.',
                       style: GoogleFonts.poppins(
-                        color: Colors.black54,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                         fontSize: 15,
                       ),
                     ),
@@ -258,7 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Mobile Number',
                       style: GoogleFonts.poppins(
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -272,22 +305,36 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         children: [
-                          Text('+91', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600)),
+                          Text(
+                            '+91',
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           const SizedBox(width: 10),
-                          Container(width: 1, height: 24, color: Colors.grey.shade300),
+                          Container(
+                            width: 1,
+                            height: 24,
+                            color: Colors.grey.shade300,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: TextField(
                               controller: _phoneController,
                               keyboardType: TextInputType.number,
                               maxLength: 10,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               onChanged: (_) => setState(() {}),
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 counterText: '',
                                 hintText: 'Enter mobile number',
-                                contentPadding: EdgeInsets.symmetric(vertical: 14),
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                               ),
                               style: GoogleFonts.poppins(fontSize: 15),
                             ),
@@ -304,14 +351,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: kBrandGreen,
                           disabledBackgroundColor: Colors.grey.shade300,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           elevation: 0,
                         ),
                         child: _isSending
                             ? const SizedBox(
                                 width: 22,
                                 height: 22,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
                               )
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -325,16 +377,84 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                                  const Icon(
+                                    Icons.arrow_forward,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
                                 ],
                               ),
                       ),
                     ),
                     const SizedBox(height: 24),
                     Center(
+                      child: TextButton(
+                        onPressed: _skipLogin,
+                        child: Text(
+                          'Skip login',
+                          style: GoogleFonts.poppins(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'By continuing, you agree to our ',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => _openLegalDoc(LegalDocType.terms),
+                          child: Text(
+                            'Terms of service',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          ' & ',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => _openLegalDoc(LegalDocType.privacy),
+                          child: Text(
+                            'Privacy policy',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
                       child: Text(
                         'Protected access - GoFresh',
-                        style: GoogleFonts.poppins(color: Colors.black38, fontSize: 12),
+                        style: GoogleFonts.poppins(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -389,40 +509,52 @@ class _HeroBanner extends StatelessWidget {
           child: Container(
             color: kHeroBg,
             child: Stack(
-            children: [
-              Align(
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: height,
-                  child: Image.asset(
-                    'assets/images/auth/login_hero.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 12,
-                child: SafeArea(
-                  bottom: false,
-                  child: TextButton(
-                    onPressed: onSkip,
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              children: [
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: height,
+                    child: Image.asset(
+                      'assets/images/auth/login_hero.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => const SizedBox(),
                     ),
-                    child: Text('Skip login',
-                        style: GoogleFonts.poppins(color: Colors.black87, fontWeight: FontWeight.w600, fontSize: 13)),
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: 8,
+                  right: 12,
+                  child: SafeArea(
+                    bottom: false,
+                    child: TextButton(
+                      onPressed: onSkip,
+                      style: TextButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                      ),
+                      child: Text(
+                        'Skip login',
+                        style: GoogleFonts.poppins(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 }
@@ -432,7 +564,12 @@ class _BannerCurveClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     final path = Path();
     path.lineTo(0, size.height - 36);
-    path.quadraticBezierTo(size.width / 2, size.height, size.width, size.height - 36);
+    path.quadraticBezierTo(
+      size.width / 2,
+      size.height,
+      size.width,
+      size.height - 36,
+    );
     path.lineTo(size.width, 0);
     path.close();
     return path;
@@ -442,7 +579,7 @@ class _BannerCurveClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
-class _LoginBottomSheet extends StatelessWidget {
+class _LoginBottomSheet extends StatefulWidget {
   final TextEditingController phoneController;
   final bool isValid;
   final VoidCallback onContinue;
@@ -456,16 +593,53 @@ class _LoginBottomSheet extends StatelessWidget {
   });
 
   @override
+  State<_LoginBottomSheet> createState() => _LoginBottomSheetState();
+}
+
+class _LoginBottomSheetState extends State<_LoginBottomSheet> {
+  late final TapGestureRecognizer _termsRecognizer;
+  late final TapGestureRecognizer _privacyRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _termsRecognizer = TapGestureRecognizer()
+      ..onTap = () => _openLegal(LegalDocType.terms);
+    _privacyRecognizer = TapGestureRecognizer()
+      ..onTap = () => _openLegal(LegalDocType.privacy);
+  }
+
+  @override
+  void dispose() {
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
+    super.dispose();
+  }
+
+  void _openLegal(LegalDocType type) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => LegalScreen(type: type)),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, -4))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 20,
+              offset: Offset(0, -4),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -483,15 +657,33 @@ class _LoginBottomSheet extends StatelessWidget {
             RichText(
               text: TextSpan(
                 children: [
-                  TextSpan(text: 'Go', style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black87)),
-                  TextSpan(text: 'Fresh', style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w800, color: kBrandGreen)),
+                  TextSpan(
+                    text: 'Go',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  TextSpan(
+                    text: 'Fresh',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: kBrandGreen,
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
             Text(
               "India's fastest app",
-              style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.black87),
+              style: GoogleFonts.poppins(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
@@ -508,7 +700,10 @@ class _LoginBottomSheet extends StatelessWidget {
               child: Row(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 16,
+                    ),
                     child: Row(
                       children: [
                         Container(
@@ -518,21 +713,31 @@ class _LoginBottomSheet extends StatelessWidget {
                             gradient: const LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Color(0xFFFF9933), Colors.white, Color(0xFF138808)],
+                              colors: [
+                                Color(0xFFFF9933),
+                                Colors.white,
+                                Color(0xFF138808),
+                              ],
                               stops: [0.33, 0.5, 0.66],
                             ),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text('+91', style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600)),
+                        Text(
+                          '+91',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Container(width: 1, height: 24, color: Colors.grey.shade300),
                   Expanded(
                     child: TextField(
-                      controller: phoneController,
+                      controller: widget.phoneController,
                       keyboardType: TextInputType.phone,
                       maxLength: 10,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -541,10 +746,12 @@ class _LoginBottomSheet extends StatelessWidget {
                         hintStyle: GoogleFonts.poppins(color: Colors.grey),
                         border: InputBorder.none,
                         counterText: '',
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                        ),
                       ),
                       style: GoogleFonts.poppins(fontSize: 15),
-                      onChanged: (_) => onChanged(),
+                      onChanged: (_) => widget.onChanged(),
                     ),
                   ),
                 ],
@@ -554,15 +761,23 @@ class _LoginBottomSheet extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isValid ? onContinue : null,
+                onPressed: widget.isValid ? widget.onContinue : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isValid ? kBrandGreen : Colors.grey.shade400,
+                  backgroundColor: widget.isValid
+                      ? kBrandGreen
+                      : Colors.grey.shade400,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: Text(
                   'Continue',
-                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -572,9 +787,25 @@ class _LoginBottomSheet extends StatelessWidget {
                 text: 'By continuing, you agree to our ',
                 style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey),
                 children: [
-                  TextSpan(text: 'Terms of service', style: GoogleFonts.poppins(fontSize: 11, color: Colors.black87, decoration: TextDecoration.underline)),
+                  TextSpan(
+                    text: 'Terms of service',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: _termsRecognizer,
+                  ),
                   const TextSpan(text: ' & '),
-                  TextSpan(text: 'Privacy policy', style: GoogleFonts.poppins(fontSize: 11, color: Colors.black87, decoration: TextDecoration.underline)),
+                  TextSpan(
+                    text: 'Privacy policy',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: _privacyRecognizer,
+                  ),
                 ],
               ),
               textAlign: TextAlign.center,
@@ -585,4 +816,3 @@ class _LoginBottomSheet extends StatelessWidget {
     );
   }
 }
-
