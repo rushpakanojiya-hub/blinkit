@@ -151,8 +151,9 @@ class _OrderStatusScreenState extends State<OrderStatusScreen>
       'refunded',
       'failed',
       'returned',
-    }.contains(raw))
+    }.contains(raw)) {
       return;
+    }
     if (raw == 'pending' || !_isPartnerAccepted()) {
       Future.delayed(const Duration(seconds: 1), _countdown);
       return;
